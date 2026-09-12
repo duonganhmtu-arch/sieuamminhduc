@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Quản Lý Phòng Khám Siêu Âm & Xét Nghiệm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a56db; 
+            --sidebar-bg: #111827;
+            --bg-color: #f3f4f6;
+            --text-dark: #1f2937;
+            --navy-blue: #1e3a8a;
+            --crimson-red: #991b1b;
+            
+            /* CSS Variables for Print Settings - Default values */
+            --p-font: 'Times New Roman', Times, serif;
+            --p-font-size: 11.5pt;
+            --p-title-size: 14pt;
+            --p-text-color: #0B2FA4;
+            --p-organ-color: #0B2FA4;
+            --p-conclusion-color: #C00000;
+            --p-line-height: 1.3;
+            --p-margin: 12mm;
+            --p-img-height: 75mm;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; }
+        
+        /* Loading Overlay */
+        #global-loading { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        
+        /* Login Screen */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f3f4f6; z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        /* Public Result Screen */
+        #public-result-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9998; overflow-y: auto; display: none; }
+        .public-container { max-width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+        /* Layout */
+        .app-wrapper { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+        .sidebar { background-color: var(--sidebar-bg); color: white; width: 250px; flex-shrink: 0; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; font-weight: 700; font-size: 16px; border-bottom: 1px solid #374151; text-align: center; }
+        .nav-content { flex-grow: 1; overflow-y: auto; }
+        .nav-link { color: #9ca3af; padding: 12px 20px; font-weight: 500; transition: 0.2s; cursor: pointer; display: flex; align-items: center; }
+        .nav-link:hover, .nav-link.active { color: white; background-color: #1f2937; border-left: 4px solid var(--primary-color); }
+        .nav-link i { margin-right: 12px; width: 20px; text-align: center; }
+        
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 24px; position: relative; }
+        .page-section { display: none; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); min-height: 80vh; animation: fadeIn 0.3s; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Typography & Forms */
+        .required::after { content: " *"; color: #dc2626; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 0.2rem rgba(26, 86, 219, 0.25); }
+
+        /* Suggestion Box */
+        .suggestion-box { position: absolute; top: calc(100% + 5px); left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); z-index: 1050; max-height: 300px; overflow-y: auto; display: none; }
+        .suggestion-item { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+        .suggestion-item:hover { background-color: #f8fafc; border-left: 3px solid var(--primary-color); }
+
+        /* Doctor Form */
+        .organ-group { padding: 16px; border-radius: 6px; margin-bottom: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; }
+        .organ-title { font-weight: 700; color: var(--navy-blue); margin-bottom: 12px; font-size: 15px; }
+        .result-textarea { font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.8; color: var(--navy-blue); font-weight: 500; }
+        .ketluan-textarea { border-left: 4px solid var(--crimson-red); color: var(--crimson-red); font-weight: 700; } 
+        
+        /* Image Management */
+        .img-wrap { position: relative; display: inline-block; margin: 10px 10px 10px 0; border: 1px solid #ddd; border-radius: 6px; padding: 5px; background: #fff;}
+        .img-wrap img { height: 120px; width: 150px; object-fit: cover; border-radius: 4px; }
+        .img-badge { position: absolute; top: -8px; left: -8px; background: var(--primary-color); color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 24px; font-size: 12px; font-weight: bold;}
+        .img-actions { margin-top: 5px; display: flex; justify-content: space-between; gap: 5px;}
+        
+        /* =========================================
+           PRINT LAYOUT A4 (DESIGN MỚI TỐI ƯU CỰC ĐẸP)
+           ========================================= */
+        .a4-preview { 
+            background: white; 
+            width: 210mm; 
+            min-height: 297mm;
+            box-sizing: border-box;
+            margin: 0 auto; 
+            padding: var(--p-margin); 
+            font-family: var(--p-font); 
+            color: var(--p-text-color); 
+            font-size: var(--p-font-size); 
+            line-height: var(--p-line-height);
+            display: flex;
+            flex-direction: column; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Header: Căn giữa tuyệt đối chữ, Logo neo mép trái */
+        .print-header { 
+            position: relative; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin-bottom: 10px; 
+            flex-shrink: 0; 
+            min-height: 60px;
+        }
+        .print-logo { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+        .print-logo img { max-height: 60px; max-width: 150px; object-fit: contain; }
+        .print-clinic-info { text-align: center; color: var(--p-text-color); } 
+        .print-clinic-info h4 { margin: 0 0 3px 0; font-weight: bold; font-size: 14pt; color: var(--p-text-color); text-transform: uppercase;}
+        
+        .print-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 5px 0 15px 0; color: var(--p-text-color); text-transform: uppercase; flex-shrink: 0;} 
+        
+        /* Section Bars (Cyan) */
+        .print-section-title {
+            background-color: #a5f3fc; /* Cyan nhạt */
+            color: var(--p-conclusion-color); /* Đỏ */
+            font-weight: bold;
+            font-size: var(--p-title-size);
+            text-transform: uppercase;
+            text-align: center;
+            padding: 4px;
+            margin-bottom: 5px;
+            flex-shrink: 0;
+        }
+
+        /* Patient Info Table */
+        .print-patient-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            color: var(--p-text-color);
+            flex-shrink: 0;
+        }
+        .print-patient-table td {
+            border: 1px dotted #94a3b8;
+            padding: 4px 8px;
+            font-size: calc(var(--p-font-size) - 0.5pt); /* Nhỏ hơn text chính 1 chút để tiết kiệm diện tích */
+        }
+        .patient-name-bold {
+            font-weight: bold;
+            font-size: var(--p-font-size);
+            text-transform: uppercase;
+        }
+
+        /* Flexible Content Wrapper */
+        .print-content-wrapper { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        /* Results (Word wrap handled to prevent horizontal overflow) */
+        .print-result-section { 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word;
+            text-align: justify; 
+            margin-bottom: 5px; 
+            width: 100%;
+        } 
+        .print-organ-name { 
+            color: var(--p-organ-color); 
+            font-weight: bold; 
+        }
+        
+        /* Image Grid Auto Sizing */
+        .print-image-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 5px 0; flex-shrink: 0; width: 100%;}
+        .print-image-grid img { 
+            max-width: 48%; 
+            height: var(--p-img-height); 
+            object-fit: cover; 
+            border: 1px solid #64748b; 
+        } 
+        
+        /* Conclusion */
+        .print-conclusion-box { 
+            background-color: #fef2f2; /* Hồng cực nhạt */
+            padding: 8px 12px; 
+            margin-top: 5px; 
+            margin-bottom: 5px; 
+            flex-shrink: 0; 
+            page-break-inside: avoid;
+        }
+        .print-conclusion-text { color: var(--p-conclusion-color); font-weight: bold; font-size: var(--p-font-size); text-transform: uppercase; margin-bottom: 4px; display: block;} 
+        .print-note-text { color: var(--p-conclusion-color); font-weight: bold; font-style: italic; font-size: calc(var(--p-font-size) - 1pt); display: block;} 
+        
+        /* Footer QR & Sig */
+        .print-footer { display: flex; justify-content: space-between; margin-top: auto; padding-top: 10px; color: var(--p-text-color); flex-shrink: 0; page-break-inside: avoid; width: 100%;}
+        .print-qr-code img { width: 65px; height: 65px; }
+        .print-signature { text-align: center; width: 220px;}
+        .signature-img { max-height: 55px; margin-top: 5px; }
+
+        @media print {
+            @page { size: A4; margin: 0; } 
+            body { background: white; margin: 0; padding: 0; }
+            .app-wrapper, .non-print, #login-screen, #toast-container { display: none !important; }
+            #print-preview { display: block !important; padding: 0; background: white; box-shadow: none; width: 100%; height: 100%;}
+            .a4-preview { 
+                width: 210mm; 
+                height: 297mm; /* Khóa cứng chuẩn A4 khi in */
+                box-shadow: none; 
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING OVERLAY -->
+    <div id="global-loading">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="mt-3 text-primary">Đang tải hệ thống...</h5>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;"></div>
+
+    <!-- TRANG TRA CỨU CÔNG KHAI -->
+    <div id="public-result-screen">
+        <div class="public-container shadow">
+            <div class="text-center border-bottom pb-3 mb-4">
+                <img id="pub-logo" src="" style="max-height: 60px; display: none; margin: 0 auto 10px;">
+                <h4 id="pub-clinic-name" class="text-primary fw-bold">PHÒNG KHÁM SIÊU ÂM</h4>
+                <p class="text-muted mb-0">HỆ THỐNG TRA CỨU KẾT QUẢ ĐIỆN TỬ</p>
+            </div>
+            <div id="pub-content" style="display: none;">
+                <h5 class="text-center text-uppercase fw-bold text-success mb-4">KẾT QUẢ SIÊU ÂM</h5>
+                <div class="row mb-3 bg-light p-3 rounded">
+                    <div class="col-md-6"><p><strong>Họ tên:</strong> <span id="pub-hoten"></span></p><p><strong>Mã lượt:</strong> <span id="pub-maluot"></span></p></div>
+                    <div class="col-md-6"><p><strong>Ngày khám:</strong> <span id="pub-ngay"></span></p><p><strong>Bác sĩ:</strong> <span id="pub-bacsi"></span></p></div>
+                </div>
+                <div class="mb-4">
+                    <h6 class="fw-bold border-bottom pb-2">MÔ TẢ</h6>
+                    <div id="pub-mota" style="white-space: pre-wrap; font-size: 15px;"></div>
+                </div>
+                <div class="mb-4 p-3 rounded" style="background: #fef2f2; border-left: 4px solid var(--crimson-red);">
+                    <h6 class="fw-bold" style="color: var(--crimson-red);">KẾT LUẬN</h6>
+                    <div id="pub-ketluan" class="fw-bold" style="color: var(--crimson-red);"></div>
+                </div>
+                <div id="pub-images" class="d-flex flex-wrap gap-2 justify-content-center mt-4"></div>
+            </div>
+            <div id="pub-error" class="text-center text-danger p-5" style="display: none;">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <h5>Không tìm thấy kết quả hoặc mã Token không hợp lệ.</h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH ĐĂNG NHẬP -->
+    <div id="login-screen">
+        <div class="login-box">
+            <img id="login-logo" src="" style="max-height: 80px; display: none; margin: 0 auto 20px;">
+            <h4 class="mb-4 fw-bold text-primary">ĐĂNG NHẬP HỆ THỐNG</h4>
+            <div class="mb-3 text-start">
+                <label class="form-label fw-bold">Tài khoản</label>
+                <input type="text" id="login-user" class="form-control form-control-lg" placeholder="Nhập tài khoản (admin)">
+            </div>
+            <div class="mb-4 text-start position-relative">
+                <label class="form-label fw-bold">Mật khẩu</label>
+                <div class="input-group">
+                    <input type="password" id="login-pass" class="form-control form-control-lg" placeholder="Nhập mật khẩu (123456)">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()"><i class="fas fa-eye" id="eye-icon"></i></button>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg w-100 fw-bold" onclick="handleLogin()">ĐĂNG NHẬP</button>
+        </div>
+    </div>
+
+    <!-- ỨNG DỤNG CHÍNH -->
+    <div class="app-wrapper non-print" id="main-app" style="display: none;">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                PHÒNG KHÁM <br>
+                <small id="cloud-status" class="text-warning" style="font-size:10px;"><i class="fas fa-database"></i> Local</small>
+            </div>
+            <div class="nav-content">
+                <a class="nav-link active" onclick="showPage('dashboard', this)"><i class="fas fa-chart-pie"></i> TỔNG QUAN</a>
+                <a class="nav-link" onclick="showPage('reception', this)"><i class="fas fa-user-plus"></i> TIẾP ĐÓN</a>
+                <a class="nav-link" onclick="showPage('ultrasound', this)"><i class="fas fa-stethoscope"></i> SIÊU ÂM</a>
+                <a class="nav-link text-warning" onclick="showPage('lab', this)"><i class="fas fa-vial"></i> XÉT NGHIỆM</a>
+                <a class="nav-link" onclick="showPage('search', this)"><i class="fas fa-search"></i> LỊCH SỬ KHÁM</a>
+                <a class="nav-link" onclick="showPage('settings', this)"><i class="fas fa-cog"></i> CÀI ĐẶT</a>
+            </div>
+            <div class="p-3 border-top border-secondary text-center">
+                <button class="btn btn-sm btn-outline-light w-100" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT</button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- TRANG CHỦ -->
+            <div id="dashboard" class="page-section active">
+                <h4 class="mb-4 fw-bold">TỔNG QUAN HÔM NAY (<span id="current-date"></span>)</h4>
+                <div class="row">
+                    <div class="col-md-4 mb-3"><div class="p-4 bg-white border rounded shadow-sm text-center border-bottom border-primary border-4"><h6 class="text-secondary fw-bold">TỔNG LƯỢT KHÁM</h6><h2 class="text-primary fw-bold mb-0" id="stat-total">0</h2></div></div>
+                    <div class="col-md-4 mb-3"><div class="p-4 bg-white border rounded shadow-sm text-center border-bottom border-warning border-4"><h6 class="text-secondary fw-bold">ĐANG CHỜ SIÊU ÂM</h6><h2 class="text-warning fw-bold mb-0" id="stat-wait">0</h2></div></div>
+                    <div class="col-md-4 mb-3"><div class="p-4 bg-white border rounded shadow-sm text-center border-bottom border-success border-4"><h6 class="text-secondary fw-bold">ĐÃ HOÀN TẤT</h6><h2 class="text-success fw-bold mb-0" id="stat-done">0</h2></div></div>
+                </div>
+            </div>
+
+            <!-- TIẾP ĐÓN -->
+            <div id="reception" class="page-section">
+                <h4 class="mb-4 fw-bold">TIẾP ĐÓN BỆNH NHÂN</h4>
+                <form id="form-patient" class="border p-4 rounded bg-white shadow-sm">
+                    <h5 class="mb-3 text-primary fw-bold" id="form-mode-title">+ TẠO BỆNH NHÂN MỚI</h5>
+                    <input type="hidden" id="current-mabn" value="">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4 position-relative">
+                            <label class="form-label required fw-bold">Họ và tên</label>
+                            <input type="text" id="hoten" class="form-control" required placeholder="Gõ tên để tìm BN cũ..." autocomplete="off" onkeyup="handleAutocomplete()">
+                            <div id="suggestion-box" class="suggestion-box"></div>
+                        </div>
+                        <div class="col-md-2"><label class="form-label fw-bold">Tuổi/Năm sinh</label><input type="text" id="tuoi" class="form-control"></div>
+                        <div class="col-md-2"><label class="form-label required fw-bold">Giới tính</label>
+                            <select class="form-select" id="gioitinh"><option value="Nam">Nam</option><option value="Nữ">Nữ</option></select>
+                        </div>
+                        <div class="col-md-4"><label class="form-label fw-bold">Số điện thoại</label><input type="text" id="sdt" class="form-control"></div>
+                    </div>
+                    <div class="row mb-2"><div class="col-md-12"><label class="form-label fw-bold">Địa chỉ</label><input type="text" id="diachi" class="form-control"></div></div>
+                    
+                    <div id="mini-history-box" class="alert alert-info mt-3" style="display:none; padding: 12px 16px;"></div>
+
+                    <h5 class="mb-3 border-top pt-4 mt-2 fw-bold">TẠO CHỈ ĐỊNH</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-primary">Dịch vụ</label>
+                            <select class="form-select border-primary" id="loaidichvu" onchange="toggleDichVu()">
+                                <option value="SA">Siêu âm</option>
+                                <option value="XN">Xét nghiệm</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="div-loaisa">
+                            <label class="form-label required fw-bold">Mẫu siêu âm</label>
+                            <select class="form-select" id="loaisa"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label required fw-bold">Bác sĩ chỉ định/thực hiện</label>
+                            <select class="form-select" id="bacsi"></select>
+                        </div>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-2 fw-bold" onclick="resetReceptionForm()">LÀM MỚI</button>
+                        <button type="button" class="btn btn-primary fw-bold px-4" onclick="createVisit()">LƯU & CHUYỂN PHÒNG</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TRA CỨU HỒ SƠ -->
+            <div id="search" class="page-section">
+                <h4 class="mb-4 fw-bold">TRA CỨU LỊCH SỬ BỆNH NHÂN</h4>
+                <div class="input-group mb-4 shadow-sm">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="search-full" class="form-control form-control-lg border-start-0" placeholder="Nhập Mã BN, Họ tên hoặc Số điện thoại..." onkeyup="searchFullPatients()">
+                </div>
+                
+                <div class="table-responsive bg-white rounded shadow-sm">
+                    <table class="table table-hover border-0 mb-0">
+                        <thead class="table-light"><tr><th>Mã BN</th><th>Họ Tên</th><th>Giới tính/Tuổi</th><th>SĐT</th><th>Số lượt</th><th>Thao tác</th></tr></thead>
+                        <tbody id="search-results-table"><tr><td colspan="6" class="text-center text-muted py-4">Nhập thông tin để tìm kiếm...</td></tr></tbody>
+                    </table>
+                </div>
+
+                <div id="patient-history-panel" class="mt-4 border rounded p-4 bg-light shadow-sm" style="display:none;">
+                    <h5 class="text-primary border-bottom pb-2 mb-3 fw-bold"><i class="fas fa-history"></i> LỊCH SỬ KHÁM: <span id="hist-hoten" class="text-dark"></span></h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm bg-white">
+                            <thead class="table-secondary"><tr><th>Ngày khám</th><th>Mã Lượt</th><th>Dịch vụ</th><th>Bác sĩ</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                            <tbody id="hist-visits-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH CHỜ BÁC SĨ (SIÊU ÂM) -->
+            <div id="ultrasound" class="page-section">
+                <h4 class="mb-4 fw-bold">QUẢN LÝ KẾT QUẢ SIÊU ÂM</h4>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="filter-date" onchange="renderWaitingList()">
+                            <option value="today">Hôm nay</option>
+                            <option value="yesterday">Hôm qua</option>
+                            <option value="7days">7 ngày gần nhất</option>
+                            <option value="all">Tất cả</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filter-status" onchange="renderWaitingList()">
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="Đang chờ">Đang chờ / Lưu tạm</option>
+                            <option value="Đã hoàn tất">Đã hoàn tất</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="filter-search" placeholder="Tìm theo tên, mã BN, mã lượt..." onkeyup="renderWaitingList()">
+                    </div>
+                </div>
+
+                <div class="table-responsive bg-white rounded shadow-sm border">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>STT</th><th>Mã Lượt</th><th>Mã BN</th><th>Họ Tên BN</th><th>Thời gian</th><th>Loại Siêu Âm</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                        <tbody id="waiting-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- FORM KẾT QUẢ BÁC SĨ -->
+            <div id="result-form" class="page-section">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h4 class="m-0 text-primary fw-bold"><i class="fas fa-stethoscope"></i> NHẬP KẾT QUẢ SIÊU ÂM</h4>
+                    <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showPage('ultrasound')"><i class="fas fa-arrow-left"></i> Quay lại</button>
+                </div>
+                
+                <div class="alert alert-secondary d-flex justify-content-between align-items-center p-3 mb-4 rounded-3 border-0 shadow-sm" style="background-color: #f1f5f9;">
+                    <div><strong class="fs-5" style="color:var(--navy-blue)"><span id="f-hoten">--</span></strong> <span class="text-muted mx-2">|</span> Mã BN: <span id="f-mabn" class="text-dark fw-bold">--</span> <span class="text-muted mx-2">|</span> <span id="f-tuoi">--</span> tuổi <span class="text-muted mx-2">|</span> <span id="f-gioitinh">--</span></div>
+                    <div>Chỉ định: <strong class="text-danger fs-6" id="f-loaisa">--</strong></div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-7">
+                        <div class="organ-group shadow-sm">
+                            <div class="organ-title"><i class="fas fa-align-left"></i> MÔ TẢ KẾT QUẢ SIÊU ÂM</div>
+                            <textarea class="form-control result-textarea" id="res-mota" rows="18" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px; width: 100%;"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="organ-group shadow-sm">
+                            <div class="organ-title" style="color: #d97706;"><i class="fas fa-images"></i> HÌNH ẢNH (Tối đa 4 ảnh)</div>
+                            <input type="file" id="image-upload-input" class="d-none" accept="image/*" multiple onchange="handleImageUpload(event)">
+                            <button class="btn btn-outline-warning w-100 mb-2 fw-bold" onclick="document.getElementById('image-upload-input').click()"><i class="fas fa-upload"></i> Chọn ảnh siêu âm</button>
+                            <div id="image-preview-container" class="d-flex flex-wrap bg-white p-2 rounded border" style="min-height: 140px;">
+                                <div class="text-muted small w-100 text-center py-4" id="no-img-text">Chưa có ảnh nào được chọn.</div>
+                            </div>
+                        </div>
+
+                        <div class="organ-group shadow-sm" style="background-color: #fef2f2; border-color: #fca5a5;">
+                            <div class="organ-title" style="color: var(--crimson-red);"><i class="fas fa-check-circle"></i> KẾT LUẬN & ĐỀ NGHỊ</div>
+                            <label class="form-label fw-bold" style="color: var(--crimson-red);">Kết luận *</label>
+                            <textarea class="form-control ketluan-textarea mb-3" id="res-ketluan" rows="3"></textarea>
+                            <label class="form-label fw-bold" style="color: var(--crimson-red);">Lưu ý (Đề nghị)</label>
+                            <textarea class="form-control result-textarea border-start border-4 border-danger" id="res-ghichu" rows="2" style="font-style:italic; font-weight:600; color:var(--crimson-red)"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4 pt-3 border-top">
+                    <button class="btn btn-light border me-2 shadow-sm fw-bold" onclick="saveResult('Lưu tạm')"><i class="fas fa-save text-secondary"></i> LƯU TẠM</button>
+                    <button class="btn btn-primary shadow-sm px-4 fw-bold" onclick="saveResult('Đã hoàn tất')"><i class="fas fa-print"></i> HOÀN TẤT & IN PHIẾU</button>
+                </div>
+            </div>
+
+            <!-- MODULE XÉT NGHIỆM -->
+            <div id="lab" class="page-section">
+                <h4 class="mb-4 fw-bold text-warning"><i class="fas fa-vial"></i> QUẢN LÝ XÉT NGHIỆM</h4>
+                <div class="table-responsive bg-white rounded shadow-sm border mt-3">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Mã Lượt XN</th><th>Bệnh nhân</th><th>Thời gian</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                        <tbody id="lab-waiting-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- FORM NHẬP XÉT NGHIỆM -->
+            <div id="lab-form" class="page-section">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h4 class="m-0 text-warning fw-bold"><i class="fas fa-microscope"></i> KẾT QUẢ XÉT NGHIỆM</h4>
+                    <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showPage('lab')"><i class="fas fa-arrow-left"></i> Quay lại</button>
+                </div>
+                <div class="alert alert-warning d-flex justify-content-between p-3 mb-4 rounded shadow-sm">
+                    <div><strong class="fs-5"><span id="l-hoten">--</span></strong> | <span id="l-mabn">--</span> | <span id="l-tuoi"></span> tuổi</div>
+                </div>
+                
+                <div class="table-responsive border rounded bg-white shadow-sm mb-4">
+                    <table class="table table-bordered mb-0 align-middle">
+                        <thead class="table-light text-center"><tr><th>Tên Xét Nghiệm</th><th width="30%">Kết Quả</th><th>Đơn vị</th><th>CSBT</th></tr></thead>
+                        <tbody id="lab-tests-body">
+                            <!-- Dữ liệu render động từ JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end">
+                    <button class="btn btn-primary shadow-sm px-4 fw-bold" onclick="saveLabResult()"><i class="fas fa-save"></i> LƯU XÉT NGHIỆM</button>
+                </div>
+            </div>
+
+            <!-- TRANG CÀI ĐẶT -->
+            <div id="settings" class="page-section">
+                <h4 class="mb-4 fw-bold">CÀI ĐẶT HỆ THỐNG</h4>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 shadow-sm border-0 border-top border-primary border-4">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold text-primary mb-3">THÔNG TIN CƠ SỞ</h6>
+                                <label class="form-label text-muted small mb-1">Tên cơ sở</label>
+                                <input type="text" id="set-clinic-name" class="form-control form-control-sm mb-2">
+                                <label class="form-label text-muted small mb-1">Địa chỉ</label>
+                                <input type="text" id="set-clinic-address" class="form-control form-control-sm mb-2">
+                                <label class="form-label text-muted small mb-1">Điện thoại</label>
+                                <input type="text" id="set-clinic-phone" class="form-control form-control-sm mb-3">
+                                <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="saveClinicInfo()">Lưu thông tin</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 shadow-sm border-0 border-top border-info border-4">
+                            <div class="card-body text-center">
+                                <h6 class="card-title fw-bold text-info mb-3">LOGO PHÒNG KHÁM</h6>
+                                <img id="set-logo-preview" src="" style="max-height: 80px; display: none; margin: 0 auto 15px auto;" class="border p-2 rounded">
+                                <input type="file" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg" onchange="uploadLogo(event)">
+                                <small class="text-muted d-block mt-2">Dùng ở Màn hình chính & Bản in.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 shadow-sm border-0 border-top border-danger border-4">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold text-danger mb-3">ĐỔI MẬT KHẨU ADMIN</h6>
+                                <input type="text" id="set-username" class="form-control form-control-sm mb-2" placeholder="Tên đăng nhập mới">
+                                <input type="password" id="set-password" class="form-control form-control-sm mb-3" placeholder="Mật khẩu mới">
+                                <button class="btn btn-danger btn-sm w-100 fw-bold" onclick="changeAdminAuth()">Đổi thông tin ĐN</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CẤU HÌNH IN -->
+                <div class="card shadow-sm border-0 border-top border-dark border-4 mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold text-dark mb-3"><i class="fas fa-print"></i> TÙY CHỈNH PHIẾU KẾT QUẢ</h6>
+                        <div class="row">
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Font chữ</label>
+                                <select id="ps-font" class="form-select form-select-sm" onchange="previewPrintSettings()">
+                                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Inter', sans-serif">Inter</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Cỡ chữ KQ (pt)</label>
+                                <input type="number" id="ps-font-size" class="form-control form-control-sm" step="0.5" value="11.5" onchange="previewPrintSettings()">
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Line Height</label>
+                                <select id="ps-line-height" class="form-select form-select-sm" onchange="previewPrintSettings()">
+                                    <option value="1.15">1.15 (Sát)</option>
+                                    <option value="1.25">1.25 (Gọn)</option>
+                                    <option value="1.35">1.35 (Chuẩn)</option>
+                                    <option value="1.5">1.5 (Rộng)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Màu KQ</label>
+                                <input type="color" id="ps-text-color" class="form-control form-control-color w-100 p-1" value="#0B2FA4" onchange="previewPrintSettings()">
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Màu Kết luận</label>
+                                <input type="color" id="ps-conclusion-color" class="form-control form-control-color w-100 p-1" value="#C00000" onchange="previewPrintSettings()">
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="small fw-bold">Lề trang (mm)</label>
+                                <input type="number" id="ps-margin" class="form-control form-control-sm" value="12" onchange="previewPrintSettings()">
+                            </div>
+                        </div>
+                        <div class="form-check form-switch mt-2 mb-3">
+                            <input class="form-check-input" type="checkbox" id="ps-auto-fit" checked onchange="previewPrintSettings()">
+                            <label class="form-check-label fw-bold text-success">Kích hoạt chế độ "Tự động co giãn vừa 1 trang A4" khi in</label>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-dark btn-sm fw-bold px-4" onclick="savePrintSettings()"><i class="fas fa-save"></i> LƯU CẤU HÌNH IN</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card shadow-sm border-0 border-top border-success border-4">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold text-success mb-3">QUẢN LÝ BÁC SĨ & CHỮ KÝ</h6>
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead><tr><th>Tên Bác sĩ</th><th>Chữ ký</th><th>Thao tác</th></tr></thead>
+                                        <tbody id="list-doctors-table"></tbody>
+                                    </table>
+                                </div>
+                                <div class="input-group input-group-sm mt-2" style="max-width: 400px;">
+                                    <input type="text" id="new-doctor" class="form-control" placeholder="Tên bác sĩ mới...">
+                                    <button class="btn btn-success fw-bold" onclick="addDoctor()">Thêm Bác sĩ</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CẤU HÌNH MẪU SIÊU ÂM -->
+                <div class="card shadow-sm border-0 border-top border-warning border-4">
+                    <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                        <h6 class="fw-bold text-warning mb-0"><i class="fas fa-file-medical"></i> CẤU HÌNH MẪU SIÊU ÂM</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 border-end mb-3">
+                                <ul class="list-group list-group-flush mb-3" id="template-list"></ul>
+                                <button class="btn btn-outline-warning w-100 btn-sm fw-bold" onclick="createNewTemplate()">+ Tạo mẫu mới</button>
+                            </div>
+                            <div class="col-md-8" id="template-editor" style="display: none;">
+                                <input type="hidden" id="edit-tmp-index">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-secondary">Tên mẫu:</label>
+                                    <input type="text" id="edit-tmp-name" class="form-control fw-bold" style="color: #1a56db;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark">MÔ TẢ KẾT QUẢ (Nhập liên tục):</label>
+                                    <textarea id="edit-tmp-mota" class="form-control result-textarea" rows="10"></textarea>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label fw-bold" style="color:var(--crimson-red);">KẾT LUẬN:</label>
+                                        <textarea id="edit-tmp-ketluan" class="form-control ketluan-textarea" rows="3"></textarea>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label fw-bold" style="color:var(--crimson-red);">LƯU Ý (Đề nghị):</label>
+                                        <textarea id="edit-tmp-ghichu" class="form-control" rows="3" style="border-left: 4px solid var(--crimson-red);"></textarea>
+                                    </div>
+                                </div>
+                                <button class="btn btn-warning w-100 fw-bold py-2 mt-2 shadow-sm" onclick="saveTemplateEdit()"><i class="fas fa-save"></i> LƯU MẪU NÀY</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> 
+
+    <!-- BẢN IN A4 (Thiết kế chuẩn Form y tế - Khóa tràn) -->
+    <div id="print-preview" style="display:none; background: #ccc; padding: 20px;">
+        <div class="text-center mb-3 non-print">
+            <button class="btn btn-secondary fw-bold" onclick="closePrintPreview()">← QUAY LẠI</button>
+            <button class="btn btn-primary fw-bold px-4" onclick="executePrint()"><i class="fas fa-print"></i> IN KẾT QUẢ / PDF</button>
+        </div>
+        
+        <div class="a4-preview" id="a4-document">
+            
+            <div class="print-header">
+                <div class="print-logo"><img id="p-logo" src="" alt="Logo"></div>
+                <div class="print-clinic-info">
+                    <h4 id="p-clinic-name">PHÒNG KHÁM SIÊU ÂM</h4>
+                    <div>Địa chỉ: <span id="p-clinic-address">--</span></div>
+                    <div>SĐT: <span id="p-clinic-phone">--</span></div>
+                </div>
+            </div>
+            
+            <div class="print-section-title">THÔNG TIN BỆNH NHÂN</div>
+            
+            <table class="print-patient-table">
+                <tr>
+                    <td width="70%">Họ và tên: <span class="patient-name-bold" style="color: var(--p-text-color);" id="p-hoten">--</span></td>
+                    <td width="30%">Tuổi: <strong id="p-tuoi">--</strong></td>
+                </tr>
+                <tr><td colspan="2">Địa chỉ: <span id="p-diachi">--</span></td></tr>
+                <tr><td colspan="2">Chỉ định siêu âm: <strong id="p-loaisa">--</strong></td></tr>
+            </table>
+
+            <div class="print-section-title">KẾT QUẢ SIÊU ÂM</div>
+            
+            <!-- Vùng nội dung có thể co giãn tự do -->
+            <div class="print-content-wrapper">
+                <div id="p-dynamic-results" class="print-result-section"></div>
+                
+                <div id="p-image-grid" class="print-image-grid"></div>
+
+                <div class="print-conclusion-box">
+                    <span class="print-conclusion-text">KẾT LUẬN: <span id="p-ketluan"></span></span>
+                    <span class="print-note-text">LƯU Ý: <span id="p-ghichu"></span></span>
+                </div>
+            </div>
+
+            <!-- Chân trang neo cứng dưới cùng -->
+            <div class="print-footer">
+                <div class="print-qr-code">
+                    <img id="p-qrcode" src="" alt="QR Code">
+                    <div style="font-size: 10pt; color:#555; margin-top:5px;">Quét xem bản điện tử</div>
+                </div>
+                <div class="print-signature">
+                    <div><em>Ngày <span id="p-ngay"></span> tháng <span id="p-thang"></span> năm <span id="p-nam"></span></em></div>
+                    <div style="margin-top: 5px; font-weight: bold;">BÁC SĨ CHUYÊN KHOA</div>
+                    <img id="p-sig-img" src="" class="signature-img" style="display:none;">
+                    <div style="height: 55px;" id="p-sig-space"></div>
+                    <div style="font-weight: bold; text-transform: uppercase;" id="p-bacsi">--</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCaaIf70nxjEdWcJj1H4wEsfEaLkZ7aESA",
+            authDomain: "phongkhamminhduc-fa803.firebaseapp.com",
+            projectId: "phongkhamminhduc-fa803",
+            storageBucket: "phongkhamminhduc-fa803.firebasestorage.app",
+            messagingSenderId: "321019580077",
+            appId: "1:321019580077:web:fcf8b16edd01419959c024",
+            databaseURL: "https://phongkhamminhduc-fa803-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const DB_KEY = 'PHONG_KHAM_SIEU_AM_DB';
+        let defaultPrintSettings = {
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: 11.5,
+            titleFontSize: 14,
+            textColor: "#0B2FA4",
+            organColor: "#0B2FA4",
+            conclusionColor: "#C00000",
+            lineHeight: 1.25,
+            pageMargin: 12,
+            autoFitOnePage: true
+        };
+
+        let defaultDb = {
+            patients: [], visits: [], labVisits: [],
+            config: {
+                auth: { user: 'admin', pass: '123456' },
+                clinic: { name: "PHÒNG KHÁM SIÊU ÂM", address: "Thái Nguyên", phone: "0988.xxx.xxx", logo: "" },
+                doctors: ["BS. Nguyễn Văn A"],
+                signatures: {},
+                printSettings: defaultPrintSettings,
+                templates: [
+                    {
+                        name: "Siêu âm thai",
+                        mota: "Thai nhi:\nỐi:\nRau:",
+                        ketluan: "BÌNH THƯỜNG.", ghichu: "Khám định kỳ."
+                    }
+                ]
+            }
+        };
+
+        let db = JSON.parse(JSON.stringify(defaultDb));
+        let currentVisitIndex = -1;
+        let uploadedImages = [];
+        let labTestsTemplate = [
+            { id: 'gl', name: 'Glucose', unit: 'mmol/L', normal: '3.9 - 6.4' },
+            { id: 'ur', name: 'Ure', unit: 'mmol/L', normal: '2.5 - 7.5' },
+            { id: 'cr', name: 'Creatinin', unit: 'µmol/L', normal: '53 - 106' },
+            { id: 'ast', name: 'AST (GOT)', unit: 'U/L', normal: '< 37' },
+            { id: 'alt', name: 'ALT (GPT)', unit: 'U/L', normal: '< 40' }
+        ];
+
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('result');
+            if (token) {
+                document.getElementById('global-loading').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('public-result-screen').style.display = 'block';
+                loadPublicResult(token);
+            } else { checkLoginStatus(); }
+        };
+
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toast-container');
+            const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : 'bg-warning text-dark');
+            const toastHtml = `
+                <div class="toast align-items-center text-white ${bgClass} border-0 show shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex"><div class="toast-body fw-bold">${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
+                </div>`;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            setTimeout(() => { if(toastContainer.firstChild) toastContainer.firstChild.remove(); }, 4000);
+        }
+
+        function togglePassword() {
+            let passInput = document.getElementById('login-pass');
+            let icon = document.getElementById('eye-icon');
+            if(passInput.type === 'password') { passInput.type = 'text'; icon.className = 'fas fa-eye-slash'; } 
+            else { passInput.type = 'password'; icon.className = 'fas fa-eye'; }
+        }
+
+        function checkLoginStatus() {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                initApp();
+            } else {
+                document.getElementById('global-loading').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+        }
+
+        function handleLogin() {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            
+            firebase.database().ref('phongkham_db/config/auth').once('value').then(snap => {
+                let auth = snap.val() || defaultDb.config.auth;
+                if(user === auth.user && pass === auth.pass) {
+                    localStorage.setItem('isLoggedIn', 'true');
+                    window.location.reload();
+                } else { showToast("Tài khoản hoặc mật khẩu không đúng!", "error"); }
+            }).catch(() => {
+                if(user === 'admin' && pass === '123456') { localStorage.setItem('isLoggedIn', 'true'); window.location.reload(); }
+                else { showToast("Đăng nhập thất bại (Offline mode).", "error"); }
+            });
+        }
+
+        function handleLogout() { localStorage.removeItem('isLoggedIn'); window.location.reload(); }
+
+        function changeAdminAuth() {
+            const newUser = document.getElementById('set-username').value.trim();
+            const newPass = document.getElementById('set-password').value.trim();
+            if(!newUser || !newPass) { showToast("Vui lòng nhập đủ thông tin!", "error"); return; }
+            db.config.auth = { user: newUser, pass: newPass };
+            saveData();
+            showToast("Đổi mật khẩu thành công! Hãy đăng nhập lại.");
+            setTimeout(handleLogout, 1500);
+        }
+
+        function initApp() {
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('vi-VN');
+            firebase.database().ref('phongkham_db').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) { 
+                    db = data;
+                    if(!db.patients) db.patients = []; 
+                    if(!db.visits) db.visits = []; 
+                    if(!db.labVisits) db.labVisits = [];
+                    if(!db.config.signatures) db.config.signatures = {};
+                    if(!db.config.auth) db.config.auth = defaultDb.config.auth;
+                    if(!db.config.printSettings) db.config.printSettings = defaultPrintSettings; 
+                    
+                    document.getElementById('cloud-status').innerHTML = '<i class="fas fa-cloud text-success"></i> Đã kết nối Cloud';
+                    document.getElementById('cloud-status').className = 'text-success';
+                } else {
+                    firebase.database().ref('phongkham_db').set(defaultDb);
+                    db = JSON.parse(JSON.stringify(defaultDb));
+                }
+                document.getElementById('global-loading').style.display = 'none';
+                refreshUI();
+            }, (error) => {
+                document.getElementById('global-loading').style.display = 'none';
+                showToast("Lỗi kết nối máy chủ dữ liệu!", "error");
+            });
+        }
+
+        function saveData() { 
+            firebase.database().ref('phongkham_db').set(db).catch(error => { showToast("Lỗi lưu Cloud!", "error"); });
+        }
+
+        function refreshUI() { 
+            renderUIFromConfig(); 
+            updateDashboard(); 
+            renderWaitingList(); 
+            renderLabList();
+            applyPrintSettingsToDOM(); 
+        }
+
+        function showPage(pageId, element = null) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if (element) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active', 'text-warning'));
+                element.classList.add('active');
+                if(pageId === 'lab') element.classList.add('text-warning');
+            }
+            if(pageId === 'print-preview') {
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('print-preview').style.display = 'block';
+            } else {
+                document.getElementById('main-app').style.display = 'flex';
+                document.getElementById('print-preview').style.display = 'none';
+            }
+        }
+        function closePrintPreview() { showPage(currentVisitIndex !== -1 ? 'result-form' : 'ultrasound'); }
+
+        function updateDashboard() {
+            let todayStr = new Date().toLocaleDateString('vi-VN');
+            let total = db.visits.filter(v => v.ngay === todayStr).length + db.labVisits.filter(v => v.ngay === todayStr).length;
+            let waiting = db.visits.filter(v => (v.trangthai === 'Đang chờ' || v.trangthai === 'Lưu tạm') && v.ngay === todayStr).length;
+            let done = db.visits.filter(v => v.trangthai === 'Đã hoàn tất' && v.ngay === todayStr).length + db.labVisits.filter(v => v.trangthai === 'Đã hoàn tất' && v.ngay === todayStr).length;
+            document.getElementById('stat-total').innerText = total; document.getElementById('stat-wait').innerText = waiting; document.getElementById('stat-done').innerText = done;
+        }
+
+        function renderUIFromConfig() {
+            document.getElementById('bacsi').innerHTML = db.config.doctors.map(dr => `<option value="${dr}">${dr}</option>`).join('');
+            document.getElementById('loaisa').innerHTML = db.config.templates.map((tmp, index) => `<option value="${index}">${tmp.name}</option>`).join('');
+            
+            document.getElementById('set-clinic-name').value = db.config.clinic.name;
+            document.getElementById('set-clinic-address').value = db.config.clinic.address;
+            document.getElementById('set-clinic-phone').value = db.config.clinic.phone;
+            
+            const logoPreview = document.getElementById('set-logo-preview');
+            if(db.config.clinic.logo) { logoPreview.src = db.config.clinic.logo; logoPreview.style.display = 'block'; }
+            
+            document.getElementById('list-doctors-table').innerHTML = db.config.doctors.map((dr, i) => `
+                <tr>
+                    <td class="fw-bold">${dr}</td>
+                    <td>
+                        ${db.config.signatures[dr] ? `<img src="${db.config.signatures[dr]}" style="height:30px">` : `<span class="text-muted small">Chưa có</span>`}
+                        <br><input type="file" class="form-control form-control-sm mt-1" style="width:150px" accept="image/*" onchange="uploadSignature(event, '${dr}')">
+                    </td>
+                    <td><button class="btn btn-sm btn-outline-danger" onclick="removeDoctor(${i})"><i class="fas fa-trash"></i></button></td>
+                </tr>`).join('');
+            
+            let ps = db.config.printSettings || defaultPrintSettings;
+            document.getElementById('ps-font').value = ps.fontFamily;
+            document.getElementById('ps-font-size').value = ps.fontSize;
+            document.getElementById('ps-line-height').value = ps.lineHeight;
+            document.getElementById('ps-text-color').value = ps.textColor;
+            document.getElementById('ps-conclusion-color').value = ps.conclusionColor;
+            document.getElementById('ps-margin').value = ps.pageMargin;
+            document.getElementById('ps-auto-fit').checked = ps.autoFitOnePage;
+
+            renderTemplateList();
+        }
+
+        function saveClinicInfo() {
+            db.config.clinic.name = document.getElementById('set-clinic-name').value;
+            db.config.clinic.address = document.getElementById('set-clinic-address').value;
+            db.config.clinic.phone = document.getElementById('set-clinic-phone').value;
+            saveData(); showToast("Đã lưu thông tin phòng khám!");
+        }
+
+        function previewPrintSettings() {
+            const root = document.documentElement;
+            root.style.setProperty('--p-font', document.getElementById('ps-font').value);
+            root.style.setProperty('--p-font-size', document.getElementById('ps-font-size').value + 'pt');
+            root.style.setProperty('--p-line-height', document.getElementById('ps-line-height').value);
+            root.style.setProperty('--p-text-color', document.getElementById('ps-text-color').value);
+            root.style.setProperty('--p-organ-color', document.getElementById('ps-text-color').value); 
+            root.style.setProperty('--p-conclusion-color', document.getElementById('ps-conclusion-color').value);
+            root.style.setProperty('--p-margin', document.getElementById('ps-margin').value + 'mm');
+        }
+
+        function savePrintSettings() {
+            db.config.printSettings = {
+                fontFamily: document.getElementById('ps-font').value,
+                fontSize: document.getElementById('ps-font-size').value,
+                titleFontSize: 14,
+                textColor: document.getElementById('ps-text-color').value,
+                organColor: document.getElementById('ps-text-color').value,
+                conclusionColor: document.getElementById('ps-conclusion-color').value,
+                lineHeight: document.getElementById('ps-line-height').value,
+                pageMargin: document.getElementById('ps-margin').value,
+                autoFitOnePage: document.getElementById('ps-auto-fit').checked
+            };
+            saveData();
+            showToast("Đã lưu cấu hình phiếu in thành công!");
+        }
+
+        function applyPrintSettingsToDOM() {
+            const ps = db.config.printSettings || defaultPrintSettings;
+            const root = document.documentElement;
+            root.style.setProperty('--p-font', ps.fontFamily);
+            root.style.setProperty('--p-font-size', ps.fontSize + 'pt');
+            root.style.setProperty('--p-title-size', ps.titleFontSize + 'pt');
+            root.style.setProperty('--p-text-color', ps.textColor);
+            root.style.setProperty('--p-organ-color', ps.organColor || ps.textColor);
+            root.style.setProperty('--p-conclusion-color', ps.conclusionColor);
+            root.style.setProperty('--p-line-height', ps.lineHeight);
+            root.style.setProperty('--p-margin', ps.pageMargin + 'mm');
+            root.style.setProperty('--p-img-height', '75mm'); 
+        }
+
+        function compressImage(file, maxWidth, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width; let height = img.height;
+                    if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function uploadLogo(event) {
+            if(event.target.files.length > 0) {
+                compressImage(event.target.files[0], 400, function(dataUrl) {
+                    db.config.clinic.logo = dataUrl; document.getElementById('set-logo-preview').src = dataUrl; 
+                    document.getElementById('set-logo-preview').style.display = 'block'; saveData(); showToast("Đã cập nhật Logo!");
+                });
+            }
+        }
+
+        function uploadSignature(event, doctorName) {
+            if(event.target.files.length > 0) {
+                compressImage(event.target.files[0], 300, function(dataUrl) {
+                    db.config.signatures[doctorName] = dataUrl; saveData(); showToast("Đã cập nhật chữ ký cho " + doctorName);
+                });
+            }
+        }
+
+        function addDoctor() {
+            let newDr = document.getElementById('new-doctor').value.trim();
+            if (newDr) { db.config.doctors.push(newDr); document.getElementById('new-doctor').value = ''; saveData(); }
+        }
+        function removeDoctor(index) {
+            if(confirm("Xóa bác sĩ này?")) { 
+                let drName = db.config.doctors[index];
+                delete db.config.signatures[drName]; 
+                db.config.doctors.splice(index, 1); saveData(); 
+            }
+        }
+
+        function renderTemplateList() {
+            let listHtml = db.config.templates.map((tmp, index) => `<li class="list-group-item" style="cursor:pointer" onclick="openTemplateEditor(${index})">${tmp.name}</li>`).join('');
+            document.getElementById('template-list').innerHTML = listHtml;
+        }
+
+        function openTemplateEditor(index) {
+            let tmp = db.config.templates[index];
+            document.getElementById('template-editor').style.display = 'block';
+            document.getElementById('edit-tmp-index').value = index;
+            document.getElementById('edit-tmp-name').value = tmp.name;
+            document.getElementById('edit-tmp-mota').value = tmp.mota;
+            document.getElementById('edit-tmp-ketluan').value = tmp.ketluan;
+            document.getElementById('edit-tmp-ghichu').value = tmp.ghichu;
+        }
+
+        function createNewTemplate() {
+            db.config.templates.push({ name: "Mẫu mới", mota: "Gan: \nMật: ", ketluan: "", ghichu: "" }); saveData();
+            openTemplateEditor(db.config.templates.length - 1);
+        }
+
+        function saveTemplateEdit() {
+            let index = document.getElementById('edit-tmp-index').value;
+            db.config.templates[index].name = document.getElementById('edit-tmp-name').value;
+            db.config.templates[index].mota = document.getElementById('edit-tmp-mota').value;
+            db.config.templates[index].ketluan = document.getElementById('edit-tmp-ketluan').value;
+            db.config.templates[index].ghichu = document.getElementById('edit-tmp-ghichu').value;
+            saveData(); showToast("Đã lưu mẫu siêu âm!");
+        }
+
+        function handleAutocomplete() {
+            const query = document.getElementById('hoten').value.toLowerCase();
+            const box = document.getElementById('suggestion-box');
+            const historyBox = document.getElementById('mini-history-box');
+
+            if (query.length < 2) { 
+                box.style.display = 'none'; 
+                if(document.getElementById('current-mabn').value !== '') {
+                    document.getElementById('current-mabn').value = ''; historyBox.style.display = 'none';
+                    document.getElementById('form-mode-title').innerHTML = '+ TẠO BỆNH NHÂN MỚI'; document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold';
+                    document.getElementById('tuoi').value = ''; document.getElementById('sdt').value = ''; document.getElementById('diachi').value = '';
+                }
+                return; 
+            }
+
+            const results = db.patients.filter(p => p.hoten.toLowerCase().includes(query) || (p.sdt && p.sdt.includes(query)));
+            if (results.length > 0) {
+                box.innerHTML = results.map(p => `
+                    <div class="suggestion-item" onclick="selectPatient('${p.mabn}')">
+                        <div class="d-flex justify-content-between align-items-center mb-1"><strong class="text-primary">${p.hoten}</strong><span class="badge bg-secondary">${p.mabn}</span></div>
+                        <div class="text-muted small">${p.tuoi} tuổi - ${p.gioitinh} - SĐT: ${p.sdt || 'Trống'}</div>
+                    </div>`).join('');
+                box.style.display = 'block';
+            } else { box.style.display = 'none'; }
+        }
+
+        function selectPatient(mabn) {
+            const p = db.patients.find(x => x.mabn === mabn);
+            if(p) {
+                document.getElementById('current-mabn').value = p.mabn; document.getElementById('hoten').value = p.hoten; document.getElementById('tuoi').value = p.tuoi;
+                document.getElementById('gioitinh').value = p.gioitinh; document.getElementById('sdt').value = p.sdt; document.getElementById('diachi').value = p.diachi;
+                
+                let title = document.getElementById('form-mode-title');
+                title.innerHTML = `<i class="fas fa-user-check"></i> ĐANG CHỌN BỆNH NHÂN CŨ: <span class="text-success">${p.hoten}</span>`;
+                title.className = 'mb-3 text-success fw-bold';
+                document.getElementById('suggestion-box').style.display = 'none';
+
+                const pVisits = db.visits.filter(v => v.mabn === mabn);
+                const historyBox = document.getElementById('mini-history-box');
+                if(pVisits.length > 0) {
+                    let histHtml = pVisits.slice(-2).reverse().map(v => `<li class="mb-1"><strong>${v.ngay}</strong>: ${v.loaisa}</li>`).join('');
+                    historyBox.innerHTML = `<strong><i class="fas fa-history"></i> Lịch sử khám gần nhất:</strong><ul class="mb-0 small" style="padding-left:1.5rem;">${histHtml}</ul>`;
+                    historyBox.style.display = 'block';
+                }
+            }
+        }
+
+        function resetReceptionForm() {
+            document.getElementById('form-patient').reset(); document.getElementById('current-mabn').value = '';
+            document.getElementById('form-mode-title').innerText = '+ TẠO BỆNH NHÂN MỚI'; document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold';
+            document.getElementById('suggestion-box').style.display = 'none'; document.getElementById('mini-history-box').style.display = 'none';
+        }
+
+        function toggleDichVu() {
+            let dv = document.getElementById('loaidichvu').value;
+            document.getElementById('div-loaisa').style.display = (dv === 'SA') ? 'block' : 'none';
+        }
+
+        function createVisit() {
+            let hoten = document.getElementById('hoten').value.trim();
+            if (!hoten) { showToast("Vui lòng nhập họ tên!", "error"); return; }
+            let mabn = document.getElementById('current-mabn').value;
+            
+            if (!mabn) {
+                mabn = "BN" + String(db.patients.length + 1).padStart(5, '0');
+                db.patients.push({ mabn: mabn, hoten: hoten.toUpperCase(), tuoi: document.getElementById('tuoi').value, gioitinh: document.getElementById('gioitinh').value, sdt: document.getElementById('sdt').value, diachi: document.getElementById('diachi').value });
+            } else {
+                let p = db.patients.find(x => x.mabn === mabn);
+                if(p) { p.tuoi = document.getElementById('tuoi').value; p.sdt = document.getElementById('sdt').value; p.diachi = document.getElementById('diachi').value; }
+            }
+
+            let dv = document.getElementById('loaidichvu').value;
+            let token = Math.random().toString(36).substr(2, 10);
+            let today = new Date().toLocaleDateString('vi-VN');
+
+            if(dv === 'SA') {
+                let tmpIdx = document.getElementById('loaisa').value;
+                let tmp = JSON.parse(JSON.stringify(db.config.templates[tmpIdx])); 
+                let maluot = "SA" + String(db.visits.length + 1).padStart(5, '0');
+                db.visits.push({
+                    maluot: maluot, mabn: mabn, ngay: today, loaisa: tmp.name, bacsi: document.getElementById('bacsi').value,
+                    trangthai: "Đang chờ", templateData: tmp, ketluanchung: tmp.ketluan, ghichuchung: tmp.ghichu, images: [], token: token
+                });
+            } else {
+                let maxnt = "XN" + String(db.labVisits.length + 1).padStart(5, '0');
+                db.labVisits.push({
+                    maluot: maxnt, mabn: mabn, ngay: today, bacsi: document.getElementById('bacsi').value,
+                    trangthai: "Đang chờ", results: {}, token: token
+                });
+            }
+
+            saveData(); showToast("Đã lưu chỉ định thành công!"); resetReceptionForm();
+        }
+
+        function renderWaitingList() {
+            const tbody = document.getElementById('waiting-list');
+            const fDate = document.getElementById('filter-date').value;
+            const fStatus = document.getElementById('filter-status').value;
+            const fSearch = document.getElementById('filter-search').value.toLowerCase();
+            
+            let todayStr = new Date().toLocaleDateString('vi-VN');
+            let filtered = db.visits.map((v, idx) => ({...v, index: idx})).filter(v => {
+                let matchDate = false;
+                if(fDate === 'today') matchDate = (v.ngay === todayStr);
+                else if(fDate === 'all') matchDate = true;
+                else matchDate = true; 
+                
+                let matchStatus = (fStatus === 'all') ? true : (fStatus === 'Đang chờ' ? (v.trangthai === 'Đang chờ' || v.trangthai === 'Lưu tạm') : v.trangthai === fStatus);
+                let p = db.patients.find(x => x.mabn === v.mabn) || {};
+                let matchSearch = p.hoten?.toLowerCase().includes(fSearch) || v.mabn.toLowerCase().includes(fSearch) || v.maluot.toLowerCase().includes(fSearch);
+                
+                return matchDate && matchStatus && matchSearch;
+            }).reverse();
+
+            if(filtered.length > 0) {
+                tbody.innerHTML = filtered.map((v, i) => {
+                    let p = db.patients.find(x => x.mabn === v.mabn);
+                    let badgeColor = v.trangthai === 'Đã hoàn tất' ? 'success' : (v.trangthai === 'Lưu tạm' ? 'info' : 'warning');
+                    return `<tr><td>${i+1}</td><td>${v.maluot}</td><td>${v.mabn}</td><td class="fw-bold">${p.hoten}</td><td>${v.ngay}</td><td>${v.loaisa}</td><td><span class="badge bg-${badgeColor}">${v.trangthai}</span></td><td><button class="btn btn-sm btn-primary shadow-sm" onclick="openDoctorForm(${v.index})"><i class="fas ${v.trangthai==='Đã hoàn tất'?'fa-eye':'fa-stethoscope'}"></i> ${v.trangthai === 'Đã hoàn tất' ? 'Xem/In' : 'Khám'}</button></td></tr>`;
+                }).join('');
+            } else { tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Không có lượt khám nào phù hợp.</td></tr>`; }
+        }
+
+        function openDoctorForm(visitIndex) {
+            currentVisitIndex = visitIndex;
+            let v = db.visits[visitIndex];
+            let p = db.patients.find(x => x.mabn === v.mabn);
+            
+            document.getElementById('f-hoten').innerText = p.hoten; document.getElementById('f-mabn').innerText = p.mabn;
+            document.getElementById('f-tuoi').innerText = p.tuoi; document.getElementById('f-gioitinh').innerText = p.gioitinh;
+            document.getElementById('f-loaisa').innerText = v.loaisa;
+
+            document.getElementById('res-mota').value = v.templateData.mota;
+            document.getElementById('res-ketluan').value = v.ketluanchung; 
+            document.getElementById('res-ghichu').value = v.ghichuchung;
+
+            uploadedImages = [...(v.images || [])]; renderImagePreview();
+            showPage('result-form');
+        }
+
+        function handleImageUpload(event) {
+            const files = event.target.files;
+            let allowed = 4 - uploadedImages.length;
+            if(allowed <= 0) { showToast("Chỉ cho phép tối đa 4 ảnh!", "error"); return; }
+            
+            let count = Math.min(files.length, allowed);
+            for (let i = 0; i < count; i++) {
+                compressImage(files[i], 800, function(dataUrl) {
+                    uploadedImages.push(dataUrl); renderImagePreview();
+                });
+            }
+        }
+        
+        function renderImagePreview() {
+            const container = document.getElementById('image-preview-container');
+            if(uploadedImages.length === 0) {
+                container.innerHTML = `<div class="text-muted small w-100 text-center py-4" id="no-img-text">Chưa có ảnh nào. (Tối đa 4 ảnh)</div>`; return;
+            }
+            container.innerHTML = uploadedImages.map((src, i) => `
+                <div class="img-wrap shadow-sm">
+                    <span class="img-badge">${i+1}</span>
+                    <img src="${src}" onclick="viewZoom('${src}')" style="cursor:pointer" title="Click để xem to">
+                    <div class="img-actions">
+                        <button class="btn btn-sm btn-outline-secondary w-50 me-1" onclick="replaceImage(${i})" title="Thay ảnh"><i class="fas fa-sync-alt"></i></button>
+                        <button class="btn btn-sm btn-outline-danger w-50" onclick="removeImage(${i})" title="Xóa ảnh"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeImage(index) { uploadedImages.splice(index, 1); renderImagePreview(); }
+        function replaceImage(index) {
+            let input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+            input.onchange = e => {
+                if(e.target.files.length > 0) {
+                    compressImage(e.target.files[0], 800, function(dataUrl) { uploadedImages[index] = dataUrl; renderImagePreview(); });
+                }
+            };
+            input.click();
+        }
+        function viewZoom(src) {
+            let win = window.open();
+            win.document.write(`<img src="${src}" style="width:100%; max-width:800px; display:block; margin:auto;">`);
+        }
+
+        function saveResult(status) {
+            if(currentVisitIndex === -1) return;
+            let v = db.visits[currentVisitIndex];
+            v.templateData.mota = document.getElementById('res-mota').value;
+            v.ketluanchung = document.getElementById('res-ketluan').value; 
+            v.ghichuchung = document.getElementById('res-ghichu').value;
+            v.images = [...uploadedImages]; v.trangthai = status;
+            saveData(); showToast("Đã " + status + " kết quả siêu âm!");
+            if(status === 'Đã hoàn tất') generatePrintPreview(v, db.patients.find(x => x.mabn === v.mabn));
+            else showPage('ultrasound');
+        }
+
+        function renderLabList() {
+            const tbody = document.getElementById('lab-waiting-list');
+            if(db.labVisits.length > 0) {
+                tbody.innerHTML = db.labVisits.map((v, i) => {
+                    let p = db.patients.find(x => x.mabn === v.mabn) || {};
+                    let badge = v.trangthai === 'Đã hoàn tất' ? 'success' : 'warning';
+                    return `<tr><td>${v.maluot}</td><td class="fw-bold">${p.hoten}</td><td>${v.ngay}</td><td><span class="badge bg-${badge}">${v.trangthai}</span></td><td><button class="btn btn-sm btn-warning fw-bold" onclick="openLabForm(${i})">Nhập KQ</button></td></tr>`;
+                }).reverse().join('');
+            } else { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Chưa có chỉ định xét nghiệm.</td></tr>`; }
+        }
+
+        let currentLabIndex = -1;
+        function openLabForm(idx) {
+            currentLabIndex = idx;
+            let v = db.labVisits[idx];
+            let p = db.patients.find(x => x.mabn === v.mabn);
+            document.getElementById('l-hoten').innerText = p.hoten; document.getElementById('l-mabn').innerText = p.mabn; document.getElementById('l-tuoi').innerText = p.tuoi;
+            
+            let tbody = document.getElementById('lab-tests-body');
+            tbody.innerHTML = labTestsTemplate.map(t => {
+                let val = v.results && v.results[t.id] ? v.results[t.id] : '';
+                return `<tr><td class="fw-bold">${t.name}</td><td><input type="text" class="form-control text-center text-danger fw-bold" id="lab-val-${t.id}" value="${val}"></td><td class="text-center">${t.unit}</td><td class="text-center">${t.normal}</td></tr>`;
+            }).join('');
+            showPage('lab-form');
+        }
+
+        function saveLabResult() {
+            if(currentLabIndex === -1) return;
+            let v = db.labVisits[currentLabIndex];
+            v.results = {};
+            labTestsTemplate.forEach(t => { v.results[t.id] = document.getElementById(`lab-val-${t.id}`).value; });
+            v.trangthai = 'Đã hoàn tất'; saveData(); showToast("Đã lưu kết quả xét nghiệm!"); showPage('lab');
+        }
+
+        function formatDescriptionText(text) {
+            let cleanText = text.replace(/^[-•*]\s*/gm, '');
+            let formatted = cleanText.replace(/^([A-Za-zĐđĂăÂâÊêÔôƠơƯưÀ-ỹ\s–]+):/gm, '<span class="print-organ-name">• $1:</span>');
+            return formatted;
+        }
+
+        function generatePrintPreview(visit, patient) {
+            applyPrintSettingsToDOM(); 
+
+            document.getElementById('p-clinic-name').innerText = db.config.clinic.name.toUpperCase();
+            document.getElementById('p-clinic-address').innerText = db.config.clinic.address;
+            document.getElementById('p-clinic-phone').innerText = db.config.clinic.phone;
+            
+            const pLogo = document.getElementById('p-logo');
+            if(db.config.clinic.logo) { pLogo.src = db.config.clinic.logo; pLogo.style.display = 'block'; } else { pLogo.style.display = 'none'; }
+
+            document.getElementById('p-hoten').innerText = patient.hoten; document.getElementById('p-tuoi').innerText = patient.tuoi;
+            document.getElementById('p-diachi').innerText = patient.diachi;
+            document.getElementById('p-loaisa').innerText = visit.loaisa;
+
+            document.getElementById('p-dynamic-results').innerHTML = formatDescriptionText(visit.templateData.mota);
+            document.getElementById('p-ketluan').innerText = visit.ketluanchung; 
+            document.getElementById('p-ghichu').innerText = visit.ghichuchung;
+            
+            document.getElementById('p-image-grid').innerHTML = (visit.images || []).map(src => `<img src="${src}">`).join('');
+
+            const dateParts = visit.ngay.split('/'); 
+            if(dateParts.length===3) {
+                document.getElementById('p-ngay').innerText = dateParts[0];
+                document.getElementById('p-thang').innerText = dateParts[1];
+                document.getElementById('p-nam').innerText = dateParts[2];
+            }
+            document.getElementById('p-bacsi').innerText = visit.bacsi;
+            
+            let sigImg = document.getElementById('p-sig-img'); let sigSpace = document.getElementById('p-sig-space');
+            if(db.config.signatures && db.config.signatures[visit.bacsi]) {
+                sigImg.src = db.config.signatures[visit.bacsi]; sigImg.style.display = 'inline-block'; sigSpace.style.display = 'none';
+            } else { sigImg.style.display = 'none'; sigSpace.style.display = 'block'; }
+
+            const appUrl = window.location.origin + window.location.pathname;
+            const secureUrl = `${appUrl}?result=${visit.token}`;
+            document.getElementById('p-qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(secureUrl)}`;
+
+            showPage('print-preview');
+        }
+        
+        function executePrint() {
+            applyPrintSettingsToDOM();
+            const ps = db.config.printSettings || defaultPrintSettings;
+            
+            if (ps.autoFitOnePage) {
+                const preview = document.getElementById('a4-document');
+                
+                let currentSize = parseFloat(ps.fontSize);
+                let currentLineHeight = parseFloat(ps.lineHeight);
+                let imgHeight = 75; 
+                document.documentElement.style.setProperty('--p-img-height', `${imgHeight}mm`);
+                
+                const originalHeight = preview.style.height;
+                preview.style.height = '297mm';
+                
+                let attempts = 0;
+                while(preview.scrollHeight > preview.clientHeight && attempts < 20) {
+                    if (currentSize > 10) currentSize -= 0.25;          
+                    else if (currentLineHeight > 1.1) currentLineHeight -= 0.05; 
+                    else if (imgHeight > 45) {                          
+                        imgHeight -= 5; 
+                        document.documentElement.style.setProperty('--p-img-height', `${imgHeight}mm`); 
+                    }
+                    else break; 
+                    
+                    document.documentElement.style.setProperty('--p-font-size', `${currentSize}pt`);
+                    document.documentElement.style.setProperty('--p-line-height', `${currentLineHeight}`);
+                    attempts++;
+                }
+                
+                if (preview.scrollHeight > preview.clientHeight) {
+                    showToast("LƯU Ý: Nội dung kết quả mô tả quá dài, phiếu sẽ được in sang trang số 2.", "warning");
+                }
+                
+                preview.style.height = originalHeight; 
+            }
+            
+            window.print();
+            
+            setTimeout(applyPrintSettingsToDOM, 1000); 
+        }
+
+        function loadPublicResult(token) {
+            firebase.database().ref('phongkham_db').once('value').then(snap => {
+                const data = snap.val();
+                if(!data || !data.visits) throw new Error("No data");
+                let visit = data.visits.find(v => v.token === token);
+                if(visit) {
+                    let p = data.patients.find(x => x.mabn === visit.mabn) || {};
+                    document.getElementById('pub-clinic-name').innerText = data.config.clinic.name;
+                    if(data.config.clinic.logo) { document.getElementById('pub-logo').src = data.config.clinic.logo; document.getElementById('pub-logo').style.display='block';}
+                    
+                    document.getElementById('pub-hoten').innerText = p.hoten; document.getElementById('pub-maluot').innerText = visit.maluot;
+                    document.getElementById('pub-ngay').innerText = visit.ngay; document.getElementById('pub-bacsi').innerText = visit.bacsi;
+                    document.getElementById('pub-mota').innerHTML = formatDescriptionText(visit.templateData.mota);
+                    document.getElementById('pub-ketluan').innerText = visit.ketluanchung;
+                    
+                    if(visit.images && visit.images.length > 0) {
+                        document.getElementById('pub-images').innerHTML = visit.images.map(src => `<img src="${src}" class="img-thumbnail" style="max-width:45%; height:auto;">`).join('');
+                    }
+                    document.getElementById('pub-content').style.display = 'block';
+                } else { document.getElementById('pub-error').style.display = 'block'; }
+            }).catch(() => { document.getElementById('pub-error').style.display = 'block'; });
+        }
+
+        function searchFullPatients() {
+            const query = document.getElementById('search-full').value.toLowerCase();
+            const tbody = document.getElementById('search-results-table');
+            document.getElementById('patient-history-panel').style.display = 'none';
+            if(query.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nhập thông tin để tìm kiếm...</td></tr>`; return; }
+            
+            const results = db.patients.filter(p => p.hoten.toLowerCase().includes(query) || p.mabn.toLowerCase().includes(query) || (p.sdt && p.sdt.includes(query)));
+            if (results.length > 0) {
+                tbody.innerHTML = results.map(p => {
+                    let countVisits = db.visits.filter(v => v.mabn === p.mabn).length + db.labVisits.filter(v => v.mabn === p.mabn).length;
+                    return `<tr><td>${p.mabn}</td><td class="fw-bold">${p.hoten}</td><td>${p.gioitinh}/${p.tuoi||'?'}</td><td>${p.sdt||''}</td><td><span class="badge bg-secondary">${countVisits} lượt</span></td><td><button class="btn btn-sm btn-outline-primary" onclick="viewHistory('${p.mabn}')">Xem chi tiết</button></td></tr>`;
+                }).join('');
+            } else { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Không tìm thấy bệnh nhân.</td></tr>`; }
+        }
+
+        function viewHistory(mabn) {
+            const p = db.patients.find(x => x.mabn === mabn);
+            const history = [...db.visits.filter(v => v.mabn === mabn), ...db.labVisits.filter(v => v.mabn === mabn)].sort((a,b) => b.maluot.localeCompare(a.maluot));
+            document.getElementById('hist-hoten').innerText = p.hoten;
+            const tbody = document.getElementById('hist-visits-table');
+            if(history.length > 0) {
+                tbody.innerHTML = history.map(v => {
+                    let isSA = v.maluot.startsWith('SA');
+                    let action = '-';
+                    if(v.trangthai === 'Đã hoàn tất') {
+                        if(isSA) action = `<button class="btn btn-sm btn-info text-white" onclick="openDoctorForm(${db.visits.indexOf(v)})"><i class="fas fa-print"></i> Xem/In</button>`;
+                        else action = `<button class="btn btn-sm btn-warning" onclick="openLabForm(${db.labVisits.indexOf(v)})">Xem XN</button>`;
+                    }
+                    return `<tr><td>${v.ngay}</td><td>${v.maluot}</td><td><span class="badge bg-${isSA?'primary':'warning'}">${isSA ? v.loaisa : 'Xét nghiệm'}</span></td><td>${v.bacsi}</td><td><span class="badge bg-${v.trangthai==='Đã hoàn tất'?'success':'secondary'}">${v.trangthai}</span></td><td>${action}</td></tr>`;
+                }).join('');
+            } else { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Chưa có lượt khám nào.</td></tr>`; }
+            document.getElementById('patient-history-panel').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
