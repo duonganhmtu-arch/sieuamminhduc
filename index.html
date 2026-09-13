@@ -77,9 +77,14 @@
 
         /* Doctor Form */
         .organ-group { padding: 16px; border-radius: 8px; margin-bottom: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; }
-        .organ-title { font-weight: 700; color: var(--navy-blue); margin-bottom: 12px; font-size: 15px; text-transform: uppercase;}
+        .organ-title { font-weight: 700; color: var(--navy-blue); margin-bottom: 12px; font-size: 15px; text-transform: none;}
         .result-textarea { font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.8; color: var(--navy-blue); font-weight: 500; }
         .ketluan-textarea { border-left: 4px solid var(--crimson-red); color: var(--crimson-red); font-weight: 700; } 
+        .result-editor-stack { display: flex; flex-direction: column; gap: 18px; width: 100%; }
+        .result-editor-stack .organ-group { margin-bottom: 0; width: 100%; }
+        .result-editor-stack .result-textarea { min-height: 260px; resize: vertical; }
+        .result-editor-stack #res-ketluan { min-height: 110px; resize: vertical; }
+        .result-editor-stack #res-ghichu { min-height: 110px; resize: vertical; }
         
         /* Image Management */
         .img-wrap { position: relative; display: inline-block; margin: 5px; border: 1px solid #ddd; border-radius: 6px; padding: 4px; background: #fff;}
@@ -119,17 +124,17 @@
         .print-logo { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
         .print-logo img { max-height: 65px; max-width: 150px; object-fit: contain; }
         .print-clinic-info { text-align: center; color: var(--p-text-color); width: 100%;} 
-        .print-clinic-info h4 { margin: 0 0 2px 0; font-weight: bold; font-size: 14pt; color: var(--p-text-color); text-transform: uppercase;}
+        .print-clinic-info h4 { margin: 0 0 2px 0; font-weight: bold; font-size: 14pt; color: var(--p-text-color); text-transform: none;}
         .print-clinic-time { font-size: 9pt; font-style: italic; margin-top: 2px;}
 
-        .print-title { text-align: center; font-size: 16pt; font-weight: bold; margin: var(--p-spacing) 0; color: var(--p-text-color); text-transform: uppercase; flex-shrink: 0;} 
+        .print-title { text-align: center; font-size: 16pt; font-weight: bold; margin: var(--p-spacing) 0; color: var(--p-text-color); text-transform: none; flex-shrink: 0;} 
         
         .print-section-title {
             background-color: #a5f3fc; 
             color: var(--p-conclusion-color); 
             font-weight: bold;
             font-size: calc(var(--p-font-size) + 2pt);
-            text-transform: uppercase;
+            text-transform: none;
             text-align: center;
             padding: 2px;
             margin-bottom: var(--p-spacing);
@@ -149,7 +154,7 @@
             padding: 2px 6px;
             font-size: calc(var(--p-font-size) - 0.5pt); 
         }
-        .patient-name-bold { font-weight: bold; font-size: var(--p-font-size); text-transform: uppercase; }
+        .patient-name-bold { font-weight: bold; font-size: var(--p-font-size); text-transform: none; }
 
         .print-content-wrapper { 
             flex-grow: 1; 
@@ -187,7 +192,7 @@
             page-break-inside: avoid;
             border: 1px dashed var(--p-conclusion-color);
         }
-        .print-conclusion-text { color: var(--p-conclusion-color); font-weight: bold; font-size: var(--p-font-size); text-transform: uppercase; margin-bottom: 2px; display: block;} 
+        .print-conclusion-text { color: var(--p-conclusion-color); font-weight: bold; font-size: var(--p-font-size); text-transform: none; margin-bottom: 2px; display: block;} 
         .print-note-text { color: var(--p-conclusion-color); font-weight: bold; font-style: italic; font-size: calc(var(--p-font-size) - 1pt); display: block;} 
         
         .print-footer { display: flex; justify-content: space-between; margin-top: auto; padding-top: 5px; color: var(--p-text-color); flex-shrink: 0; page-break-inside: avoid; width: 100%;}
@@ -443,33 +448,34 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-lg-7">
-                        <div class="organ-group shadow-sm bg-white">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="organ-title mb-0"><i class="fas fa-align-left"></i> MÔ TẢ KẾT QUẢ</div>
-                                <small id="draft-status" class="text-warning fw-bold" style="display:none;"><i class="fas fa-save"></i> Bản nháp tự động lưu</small>
-                            </div>
-                            <textarea class="form-control result-textarea" id="res-mota" rows="18" style="background: #fafafa; border: 1px solid #cbd5e1; width: 100%;" onkeyup="saveDraftLocal()"></textarea>
+                <div class="result-editor-stack">
+                    <div class="organ-group shadow-sm bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="organ-title mb-0"><i class="fas fa-align-left"></i> Mô tả kết quả</div>
+                            <small id="draft-status" class="text-warning fw-bold" style="display:none;"><i class="fas fa-save"></i> Bản nháp tự động lưu</small>
+                        </div>
+                        <textarea class="form-control result-textarea" id="res-mota" rows="22" style="background: #fafafa; border: 1px solid #cbd5e1; width: 100%;" onkeyup="saveDraftLocal()"></textarea>
+                    </div>
+
+                    <div class="organ-group shadow-sm bg-white">
+                        <div class="organ-title" style="color: #d97706;"><i class="fas fa-images"></i> Hình ảnh (tối đa 4 ảnh)</div>
+                        <input type="file" id="image-upload-input" class="d-none" accept="image/*" multiple onchange="handleImageUpload(event)">
+                        <button class="btn btn-outline-warning w-100 mb-2 fw-bold" onclick="document.getElementById('image-upload-input').click()"><i class="fas fa-upload"></i> Tải ảnh siêu âm lên</button>
+                        <div id="image-preview-container" class="d-flex flex-wrap bg-light p-2 rounded border" style="min-height: 140px;">
+                            <div class="text-muted small w-100 text-center py-4" id="no-img-text">Chưa có ảnh nào được chọn.</div>
                         </div>
                     </div>
-                    <div class="col-lg-5">
-                        <div class="organ-group shadow-sm bg-white">
-                            <div class="organ-title" style="color: #d97706;"><i class="fas fa-images"></i> HÌNH ẢNH (Tối đa 4 ảnh)</div>
-                            <input type="file" id="image-upload-input" class="d-none" accept="image/*" multiple onchange="handleImageUpload(event)">
-                            <button class="btn btn-outline-warning w-100 mb-2 fw-bold" onclick="document.getElementById('image-upload-input').click()"><i class="fas fa-upload"></i> Tải ảnh siêu âm lên</button>
-                            <div id="image-preview-container" class="d-flex flex-wrap bg-light p-2 rounded border" style="min-height: 140px;">
-                                <div class="text-muted small w-100 text-center py-4" id="no-img-text">Chưa có ảnh nào được chọn.</div>
-                            </div>
-                        </div>
 
-                        <div class="organ-group shadow-sm" style="background-color: #fef2f2; border-color: #fca5a5;">
-                            <div class="organ-title" style="color: var(--crimson-red);"><i class="fas fa-check-circle"></i> KẾT LUẬN & ĐỀ NGHỊ</div>
-                            <label class="form-label fw-bold small" style="color: var(--crimson-red);">KẾT LUẬN *</label>
-                            <textarea class="form-control ketluan-textarea mb-3" id="res-ketluan" rows="3" onkeyup="saveDraftLocal()"></textarea>
-                            <label class="form-label fw-bold small" style="color: var(--crimson-red);">LƯU Ý (Nếu có)</label>
-                            <textarea class="form-control result-textarea border-start border-4 border-danger" id="res-ghichu" rows="2" style="font-style:italic; font-weight:600; color:var(--crimson-red)" onkeyup="saveDraftLocal()"></textarea>
-                        </div>
+                    <div class="organ-group shadow-sm" style="background-color: #fef2f2; border-color: #fca5a5;">
+                        <div class="organ-title" style="color: var(--crimson-red);"><i class="fas fa-check-circle"></i> Kết luận</div>
+                        <label class="form-label fw-bold small" style="color: var(--crimson-red);">Kết luận *</label>
+                        <textarea class="form-control ketluan-textarea mb-3" id="res-ketluan" rows="3" onkeyup="saveDraftLocal()"></textarea>
+                    </div>
+
+                    <div class="organ-group shadow-sm" style="background-color: #fff7ed; border-color: #fdba74;">
+                        <div class="organ-title" style="color: var(--crimson-red);"><i class="fas fa-note-sticky"></i> Lưu ý</div>
+                        <label class="form-label fw-bold small" style="color: var(--crimson-red);">Lưu ý (nếu có)</label>
+                        <textarea class="form-control result-textarea border-start border-4 border-danger" id="res-ghichu" rows="3" style="font-style:italic; font-weight:600; color:var(--crimson-red)" onkeyup="saveDraftLocal()"></textarea>
                     </div>
                 </div>
 
@@ -764,7 +770,7 @@
                     <div style="margin-top: 2px; font-weight: bold;">BÁC SĨ CHUYÊN KHOA</div>
                     <img id="p-sig-img" src="" class="signature-img" style="display:none;">
                     <div style="height: 50px;" id="p-sig-space"></div>
-                    <div style="font-weight: bold; text-transform: uppercase;" id="p-bacsi">--</div>
+                    <div style="font-weight: bold; text-transform: none;" id="p-bacsi">--</div>
                 </div>
             </div>
         </div>
