@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Quản Lý </title>
+    <title>Phần Mềm Quản Lý Phòng Khám</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -85,9 +85,9 @@
         
         /* Cấu hình in */
         .a4-preview { 
-            background: white; width: 210mm; min-height: 297mm; box-sizing: border-box; margin: 0 auto; padding: var(--p-margin); 
+            background: white; width: 210mm; box-sizing: border-box; margin: 0 auto; padding: var(--p-margin); 
             font-family: var(--p-font); color: var(--p-text-color); font-size: var(--p-font-size); line-height: var(--p-line-height);
-            display: flex; flex-direction: column; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden;
+            display: flex; flex-direction: column; overflow: hidden;
         }
         .print-header { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: var(--p-spacing); flex-shrink: 0; min-height: 60px; }
         .print-logo { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
@@ -101,7 +101,7 @@
         .print-patient-table td { border: 1px dotted #94a3b8; padding: 2px 6px; font-size: calc(var(--p-font-size) - 0.5pt); }
         .patient-name-bold { font-weight: bold; font-size: var(--p-font-size); text-transform: none; }
         .print-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; width: 100%; }
-        .print-result-section { white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; text-align: justify; margin-bottom: var(--p-spacing); width: 100%; } 
+        .print-result-section { white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; text-align: justify; margin-bottom: var(--p-spacing); width: 100%; flex-shrink: 0; } 
         .print-organ-name { color: var(--p-organ-color); font-weight: bold; }
         .print-image-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: var(--p-spacing) 0; flex-shrink: 0; width: 100%;}
         .print-image-grid img { max-width: 48%; height: var(--p-img-height); object-fit: cover; border: 1px solid #64748b; } 
@@ -113,14 +113,6 @@
         .print-qr-code img { width: 60px; height: 60px; }
         .print-signature { text-align: center; width: 220px;}
         .signature-img { max-height: 50px; margin-top: 2px; }
-
-        @media print {
-            @page { size: A4 portrait; margin: 0; }
-            html, body { width: 210mm; height: 297mm; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
-            .app-wrapper, .non-print, #login-screen, #toast-container { display: none !important; }
-            #print-preview { display: block !important; padding: 0 !important; margin: 0 !important; background: #fff !important; box-shadow: none !important; width: 210mm !important; height: 297mm !important; overflow: hidden !important; }
-            .a4-preview { width: 210mm !important; height: 297mm !important; min-height: 297mm !important; max-height: 297mm !important; box-shadow: none !important; margin: 0 !important; overflow: hidden !important; page-break-after: avoid !important; break-after: avoid-page !important; }
-        }
     </style>
 </head>
 <body>
@@ -206,6 +198,7 @@
                 <a class="nav-link text-warning" onclick="showPage('lab', this)"><i class="fas fa-vial"></i> TRẢ KQ XÉT NGHIỆM</a>
                 <a class="nav-link" onclick="showPage('search', this)"><i class="fas fa-search"></i> LỊCH SỬ BỆNH NHÂN</a>
                 <a class="nav-link" onclick="showPage('settings', this)"><i class="fas fa-cog"></i> CÀI ĐẶT HỆ THỐNG</a>
+                <a class="nav-link admin-only" onclick="showPage('system-logs', this)"><i class="fas fa-list-alt"></i> LỊCH SỬ THAO TÁC</a>
             </div>
             <div class="p-3 border-top border-secondary text-center">
                 <button class="btn btn-sm btn-outline-light w-100 fw-bold" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT</button>
@@ -235,7 +228,7 @@
                     <div class="row mb-3">
                         <div class="col-md-4 position-relative">
                             <label class="form-label required fw-bold">Họ và tên</label>
-                            <input type="text" id="hoten" class="form-control" required placeholder="Gõ tên hoặc SĐT để tìm BN cũ..." autocomplete="off" onkeyup="handleAutocomplete()" onblur="setTimeout(() => { document.getElementById('suggestion-box').style.display = 'none'; }, 200);">
+                            <input type="text" id="hoten" class="form-control" required placeholder="Gõ tên hoặc SĐT để tìm BN cũ..." autocomplete="off" onkeyup="handleAutocomplete()" oninput="checkInputState()" onblur="setTimeout(() => { document.getElementById('suggestion-box').style.display = 'none'; }, 200);">
                             <div id="suggestion-box" class="suggestion-box"></div>
                         </div>
                         <div class="col-md-2"><label class="form-label fw-bold">Tuổi/Năm sinh</label><input type="text" id="tuoi" class="form-control"></div>
@@ -640,66 +633,75 @@
                     </div>
                 </div>
             </div>
+
+            <!-- TRANG LỊCH SỬ THAO TÁC -->
+            <div id="system-logs" class="page-section">
+                <h4 class="mb-4 fw-bold"><i class="fas fa-list-alt text-secondary"></i> LỊCH SỬ THAO TÁC (AUDIT LOG)</h4>
+                <div class="card-material table-responsive mt-3">
+                    <table class="table table-hover mb-0 align-middle table-sm">
+                        <thead class="table-dark">
+                            <tr><th>Thời gian</th><th>Tài khoản</th><th>Hành động</th><th>Module</th><th>Chi tiết</th></tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div> 
 
-    <!-- BẢN IN A4 -->
-    <div id="print-preview" style="display:none; background: #525659; padding: 20px;">
-        <div class="text-center mb-3 non-print sticky-top py-2" style="background: rgba(82,86,89,0.9);">
-            <button class="btn btn-light fw-bold shadow" onclick="closePrintPreview()">← QUAY LẠI TRẢ KẾT QUẢ</button>
-            <button class="btn btn-primary fw-bold px-4 shadow ms-2" onclick="executePrint()"><i class="fas fa-print"></i> TIẾN HÀNH IN PHIẾU</button>
+    <!-- Form Ẩn: Dùng để trích xuất HTML cho popup -->
+    <div id="a4-document" class="a4-preview" style="display:none;">
+        <div class="print-header">
+            <div class="print-logo"><img id="p-logo" src="" alt="Logo"></div>
+            <div class="print-clinic-info">
+                <h4 id="p-clinic-name">PHÒNG KHÁM SIÊU ÂM</h4>
+                <div>Địa chỉ: <span id="p-clinic-address">--</span></div>
+                <div>SĐT: <span id="p-clinic-phone">--</span></div>
+                <div class="print-clinic-time" id="p-clinic-time"></div>
+            </div>
         </div>
         
-        <div class="a4-preview" id="a4-document">
-            <div class="print-header">
-                <div class="print-logo"><img id="p-logo" src="" alt="Logo"></div>
-                <div class="print-clinic-info">
-                    <h4 id="p-clinic-name">PHÒNG KHÁM SIÊU ÂM</h4>
-                    <div>Địa chỉ: <span id="p-clinic-address">--</span></div>
-                    <div>SĐT: <span id="p-clinic-phone">--</span></div>
-                    <div class="print-clinic-time" id="p-clinic-time"></div>
-                </div>
+        <div class="print-section-title">THÔNG TIN BỆNH NHÂN</div>
+        
+        <table class="print-patient-table">
+            <tr>
+                <td width="70%">Họ và tên: <span class="patient-name-bold" style="color: var(--p-text-color);" id="p-hoten">--</span></td>
+                <td width="30%">Tuổi: <strong id="p-tuoi">--</strong> &nbsp;&nbsp;&nbsp; Giới: <strong id="p-gioitinh">--</strong></td>
+            </tr>
+            <tr><td colspan="2">Địa chỉ: <span id="p-diachi">--</span></td></tr>
+            <tr><td colspan="2">Chỉ định: <strong id="p-loaisa">--</strong> <span class="float-end">Mã: <span id="p-maluot-print"></span></span></td></tr>
+        </table>
+
+        <div class="print-section-title">KẾT QUẢ SIÊU ÂM</div>
+        
+        <div class="print-content-wrapper">
+            <div id="p-dynamic-results" class="print-result-section"></div>
+            <div id="p-image-grid" class="print-image-grid"></div>
+
+            <div class="print-conclusion-box">
+                <span class="print-conclusion-text">KẾT LUẬN: <span id="p-ketluan"></span></span>
+                <span class="print-note-text" id="p-ghichu-container" style="display:none;">LƯU Ý: <span id="p-ghichu"></span></span>
             </div>
-            
-            <div class="print-section-title">THÔNG TIN BỆNH NHÂN</div>
-            
-            <table class="print-patient-table">
-                <tr>
-                    <td width="70%">Họ và tên: <span class="patient-name-bold" style="color: var(--p-text-color);" id="p-hoten">--</span></td>
-                    <td width="30%">Tuổi: <strong id="p-tuoi">--</strong> &nbsp;&nbsp;&nbsp; Giới: <strong id="p-gioitinh">--</strong></td>
-                </tr>
-                <tr><td colspan="2">Địa chỉ: <span id="p-diachi">--</span></td></tr>
-                <tr><td colspan="2">Chỉ định: <strong id="p-loaisa">--</strong> <span class="float-end">Mã: <span id="p-maluot-print"></span></span></td></tr>
-            </table>
+        </div>
 
-            <div class="print-section-title">KẾT QUẢ SIÊU ÂM</div>
-            
-            <div class="print-content-wrapper">
-                <div id="p-dynamic-results" class="print-result-section"></div>
-                <div id="p-image-grid" class="print-image-grid"></div>
-
-                <div class="print-conclusion-box">
-                    <span class="print-conclusion-text">KẾT LUẬN: <span id="p-ketluan"></span></span>
-                    <span class="print-note-text" id="p-ghichu-container" style="display:none;">LƯU Ý: <span id="p-ghichu"></span></span>
-                </div>
+        <div class="print-footer">
+            <div class="print-qr-code">
+                <img id="p-qrcode" src="" alt="QR">
+                <div style="font-size: 8pt; color:#555; margin-top:3px; font-weight: bold;">Quét mã để xem<br>kết quả điện tử</div>
             </div>
-
-            <div class="print-footer">
-                <div class="print-qr-code">
-                    <img id="p-qrcode" src="" alt="QR">
-                    <div style="font-size: 8pt; color:#555; margin-top:3px; font-weight: bold;">Quét mã để xem<br>kết quả điện tử</div>
-                </div>
-                <div class="print-signature">
-                    <div><em>Ngày <span id="p-ngay"></span> tháng <span id="p-thang"></span> năm <span id="p-nam"></span></em></div>
-                    <div style="margin-top: 2px; font-weight: bold;">BÁC SĨ SIÊU ÂM</div>
-                    <img id="p-sig-img" src="" class="signature-img" style="display:none;">
-                    <div style="height: 50px;" id="p-sig-space"></div>
-                    <div style="font-weight: bold; text-transform: none;" id="p-bacsi">--</div>
-                </div>
+            <div class="print-signature">
+                <div><em>Ngày <span id="p-ngay"></span> tháng <span id="p-thang"></span> năm <span id="p-nam"></span></em></div>
+                <div style="margin-top: 2px; font-weight: bold;">BÁC SĨ SIÊU ÂM</div>
+                <img id="p-sig-img" src="" class="signature-img" style="display:none;">
+                <div style="height: 50px;" id="p-sig-space"></div>
+                <div style="font-weight: bold; text-transform: none;" id="p-bacsi">--</div>
             </div>
         </div>
     </div>
 
+    <!-- CODE JAVASCRIPT BẮT BUỘC PHẢI NẰM TRONG THẺ SCRIPT NÀY -->
     <script>
         // FIREBASE CONFIGURATION
         const firebaseConfig = {
@@ -714,39 +716,27 @@
         firebase.initializeApp(firebaseConfig);
 
         let defaultPrintSettings = { fontFamily: "'Times New Roman', Times, serif", fontSize: 11.5, titleFontSize: 14, textColor: "#0B2FA4", organColor: "#0B2FA4", conclusionColor: "#C00000", lineHeight: 1.25, pageMargin: 12, autoFitOnePage: true };
-        let defaultLabTests = [
-            { id: 'gl', name: 'Glucose', category: 'Sinh hóa', unit: 'mmol/L', normal: '3.9 - 6.4' }
-        ];
+        let defaultLabTests = [ { id: 'gl', name: 'Glucose', category: 'Sinh hóa', unit: 'mmol/L', normal: '3.9 - 6.4' } ];
         
         let defaultDb = {
-            patients: [], visits: [], labVisits: [],
+            patients: [], visits: [], labVisits: [], logs: [],
             config: {
-                auth: { user: 'admin', pass: '123456' },
-                doctorAccounts: [],
-                clinic: { 
-                    name: "PHÒNG KHÁM SIÊU ÂM MINH ĐỨC", address: "Phổ Yên - Thái Nguyên", phone: "0988.xxx.xxx", logo: "",
-                    workingHours: { weekday: "07:00 - 17:30", weekend: "07:00 - 11:30" }
-                },
-                doctors: ["BS. Nguyễn Văn A"], signatures: {}, printSettings: defaultPrintSettings,
-                labTests: defaultLabTests,
+                auth: { user: 'admin', pass: '123456' }, doctorAccounts: [],
+                clinic: { name: "PHÒNG KHÁM SIÊU ÂM MINH ĐỨC", address: "Phổ Yên - Thái Nguyên", phone: "0988.xxx.xxx", logo: "", workingHours: { weekday: "07:00 - 17:30", weekend: "07:00 - 11:30" } },
+                doctors: ["BS. Nguyễn Văn A"], signatures: {}, printSettings: defaultPrintSettings, labTests: defaultLabTests,
                 templates: [{ name: "Siêu âm ổ bụng", mota: "Gan:\nMật:\nThận:", ketluan: "BÌNH THƯỜNG.", ghichu: "" }]
             }
         };
 
         let db = JSON.parse(JSON.stringify(defaultDb));
-        let currentVisitIndex = -1;
-        let uploadedImages = [];
-        let searchTimeout = null;
+        let currentVisitIndex = -1; let uploadedImages = []; let searchTimeout = null;
 
-        // INIT APP
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('result');
             if (token) {
-                document.getElementById('global-loading').style.display = 'none';
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'none';
-                document.getElementById('public-result-screen').style.display = 'block';
+                document.getElementById('global-loading').style.display = 'none'; document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'none'; document.getElementById('public-result-screen').style.display = 'block';
                 loadPublicResult(token);
             } else { checkLoginStatus(); }
         };
@@ -760,77 +750,64 @@
         }
 
         function togglePassword() {
-            let passInput = document.getElementById('login-pass');
-            let icon = document.getElementById('eye-icon');
+            let passInput = document.getElementById('login-pass'); let icon = document.getElementById('eye-icon');
             if(passInput.type === 'password') { passInput.type = 'text'; icon.className = 'fas fa-eye-slash'; } else { passInput.type = 'password'; icon.className = 'fas fa-eye'; }
+        }
+
+        function logAction(action, module, details) {
+            try {
+                if (!db.logs) db.logs = [];
+                if (!Array.isArray(db.logs)) { db.logs = Object.values(db.logs); }
+                let currentUser = localStorage.getItem('currentUser') || 'Admin/Bác sĩ (Phiên cũ)'; let now = new Date();
+                let timeStr = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
+                db.logs.unshift({ time: timeStr, user: currentUser, action: action, module: module, details: details });
+                if(db.logs.length > 1000) db.logs.pop(); 
+            } catch (error) { console.error("Lỗi ghi log: ", error); }
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logs-table-body');
+            if(!db.logs || typeof db.logs !== 'object') { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Chưa có lịch sử thao tác nào.</td></tr>`; return; }
+            let logsArray = Array.isArray(db.logs) ? db.logs : Object.values(db.logs);
+            if(logsArray.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Chưa có lịch sử thao tác nào.</td></tr>`; return; }
+            tbody.innerHTML = logsArray.map(l => {
+                let badgeColor = l.action === 'TẠO MỚI' ? 'success' : (l.action === 'XÓA' ? 'danger' : 'primary');
+                return `<tr><td class="text-muted small">${l.time || ''}</td><td class="fw-bold">${l.user || 'Không rõ'}</td><td><span class="badge bg-${badgeColor}">${l.action || ''}</span></td><td><span class="badge bg-secondary">${l.module || ''}</span></td><td>${l.details || ''}</td></tr>`;
+            }).join('');
         }
 
         function checkLoginStatus() {
             if (localStorage.getItem('isLoggedIn') === 'true') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'flex';
-                applyRolePermissions();
-                initApp();
-            } else {
-                document.getElementById('global-loading').style.display = 'none';
-                document.getElementById('login-screen').style.display = 'flex';
-            }
+                document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-app').style.display = 'flex'; applyRolePermissions(); initApp();
+            } else { document.getElementById('global-loading').style.display = 'none'; document.getElementById('login-screen').style.display = 'flex'; }
         }
 
         function applyRolePermissions() {
-            let role = localStorage.getItem('userRole') || 'admin'; 
-            document.getElementById('sidebar-role-label').innerHTML = `<i class="fas fa-user-shield"></i> Vai trò: ${role.toUpperCase()}`;
-            if(role !== 'admin') {
-                document.head.insertAdjacentHTML('beforeend', '<style>.admin-only { display: none !important; }</style>');
-            }
+            let role = localStorage.getItem('userRole') || 'admin'; document.getElementById('sidebar-role-label').innerHTML = `<i class="fas fa-user-shield"></i> Vai trò: ${role.toUpperCase()}`;
+            if(role !== 'admin') { document.head.insertAdjacentHTML('beforeend', '<style>.admin-only { display: none !important; }</style>'); }
         }
 
         function handleLogin() {
-            const user = document.getElementById('login-user').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
-            
+            const user = document.getElementById('login-user').value.trim(); const pass = document.getElementById('login-pass').value.trim();
             firebase.database().ref('phongkham_db/config').once('value').then(snap => {
-                let config = snap.val() || defaultDb.config;
-                let auth = config.auth || defaultDb.config.auth;
-                
-                // Ép kiểu dữ liệu về Mảng (Array) để tránh lỗi Firebase chuyển thành Object
-                let rawDocAccounts = config.doctorAccounts || [];
-                let docAccounts = Array.isArray(rawDocAccounts) ? rawDocAccounts : Object.values(rawDocAccounts);
-
+                let config = snap.val() || defaultDb.config; let auth = config.auth || defaultDb.config.auth;
+                let rawDocAccounts = config.doctorAccounts || []; let docAccounts = Array.isArray(rawDocAccounts) ? rawDocAccounts : Object.values(rawDocAccounts);
                 if (user === auth.user && pass === auth.pass) { 
-                    localStorage.setItem('isLoggedIn', 'true'); 
-                    localStorage.setItem('userRole', 'admin'); 
-                    window.location.reload(); 
+                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', 'admin'); localStorage.setItem('currentUser', 'Admin (' + user + ')'); window.location.reload(); 
                 } else {
                     let doc = docAccounts.find(x => x && x.user === user && x.pass === pass);
-                    if (doc) {
-                        localStorage.setItem('isLoggedIn', 'true'); 
-                        localStorage.setItem('userRole', 'doctor');
-                        window.location.reload();
-                    } else {
-                        showToast("Tài khoản hoặc mật khẩu sai!", "error");
-                    }
+                    if (doc) { localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', 'doctor'); localStorage.setItem('currentUser', 'Bác sĩ (' + user + ')'); window.location.reload(); } 
+                    else { showToast("Tài khoản hoặc mật khẩu sai!", "error"); }
                 }
-            }).catch((err) => {
-                console.error(err);
-                if(user === 'admin' && pass === '123456') { 
-                    localStorage.setItem('isLoggedIn', 'true'); 
-                    localStorage.setItem('userRole', 'admin'); 
-                    window.location.reload(); 
-                } else { 
-                    showToast("Đăng nhập thất bại. Kiểm tra kết nối mạng!", "error"); 
-                }
-            });
+            }).catch((err) => { showToast("Đăng nhập thất bại. Kiểm tra kết nối mạng!", "error"); });
         }
 
         function handleLogout() { localStorage.removeItem('isLoggedIn'); localStorage.removeItem('userRole'); window.location.reload(); }
 
         function changeAdminAuth() {
-            const newUser = document.getElementById('set-username').value.trim();
-            const newPass = document.getElementById('set-password').value.trim();
+            const newUser = document.getElementById('set-username').value.trim(); const newPass = document.getElementById('set-password').value.trim();
             if(!newUser || !newPass) { showToast("Vui lòng nhập đủ thông tin!", "error"); return; }
-            db.config.auth = { user: newUser, pass: newPass }; saveData();
-            showToast("Đổi mật khẩu thành công! Hãy đăng nhập lại."); setTimeout(handleLogout, 1500);
+            db.config.auth = { user: newUser, pass: newPass }; saveData(); showToast("Đổi mật khẩu thành công! Hãy đăng nhập lại."); setTimeout(handleLogout, 1500);
         }
 
         function initApp() {
@@ -839,53 +816,28 @@
                 const data = snapshot.val();
                 if (data) { 
                     db = data;
-                    if(!db.patients) db.patients = []; if(!db.visits) db.visits = []; if(!db.labVisits) db.labVisits = [];
-                    if(!db.config.signatures) db.config.signatures = {};
-                    if(!db.config.auth) db.config.auth = defaultDb.config.auth;
-                    if(!db.config.doctorAccounts) db.config.doctorAccounts = [];
-                    if(!db.config.printSettings) db.config.printSettings = defaultPrintSettings; 
-                    if(!db.config.clinic.workingHours) db.config.clinic.workingHours = defaultDb.config.clinic.workingHours;
-                    if(!db.config.labTests) db.config.labTests = defaultLabTests;
-                    
-                    document.getElementById('cloud-status').innerHTML = '<i class="fas fa-cloud text-success"></i> Firebase Synced';
-                    document.getElementById('cloud-status').className = 'text-success';
-                } else {
-                    firebase.database().ref('phongkham_db').set(defaultDb);
-                    db = JSON.parse(JSON.stringify(defaultDb));
-                }
-                document.getElementById('global-loading').style.display = 'none';
-                refreshUI();
-            }, (error) => {
-                document.getElementById('global-loading').style.display = 'none'; showToast("Lỗi kết nối Firebase!", "error");
-            });
+                    if(!db.patients) db.patients = []; if(!db.visits) db.visits = []; if(!db.labVisits) db.labVisits = []; if(!db.logs) db.logs = [];
+                    if(!db.config.signatures) db.config.signatures = {}; if(!db.config.auth) db.config.auth = defaultDb.config.auth;
+                    if(!db.config.doctorAccounts) db.config.doctorAccounts = []; if(!db.config.printSettings) db.config.printSettings = defaultPrintSettings; 
+                    if(!db.config.clinic.workingHours) db.config.clinic.workingHours = defaultDb.config.clinic.workingHours; if(!db.config.labTests) db.config.labTests = defaultLabTests;
+                    document.getElementById('cloud-status').innerHTML = '<i class="fas fa-cloud text-success"></i> Firebase Synced'; document.getElementById('cloud-status').className = 'text-success';
+                } else { firebase.database().ref('phongkham_db').set(defaultDb); db = JSON.parse(JSON.stringify(defaultDb)); }
+                document.getElementById('global-loading').style.display = 'none'; refreshUI();
+            }, (error) => { document.getElementById('global-loading').style.display = 'none'; showToast("Lỗi kết nối Firebase!", "error"); });
         }
 
         function saveData() { firebase.database().ref('phongkham_db').set(db).catch(e => showToast("Lỗi lưu Cloud!", "error")); }
 
         function refreshUI() { 
-            try { renderUIFromConfig(); } catch(e){}
-            try { updateDashboard(); } catch(e){}
-            try { renderWaitingList(); } catch(e){}
-            try { renderLabList(); } catch(e){}
-            try { applyPrintSettingsToDOM(); } catch(e){}
-            try { buildMultiServicesUI(); } catch(e){}
+            try { renderUIFromConfig(); } catch(e){} try { updateDashboard(); } catch(e){} try { renderWaitingList(); } catch(e){}
+            try { renderLabList(); } catch(e){} try { buildMultiServicesUI(); } catch(e){} try { renderLogs(); } catch(e){} 
         }
 
         function showPage(pageId, element = null) {
             document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
-            if (element) {
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active', 'text-warning'));
-                element.classList.add('active');
-                if(pageId === 'lab') element.classList.add('text-warning');
-            }
-            if(pageId === 'print-preview') {
-                document.getElementById('main-app').style.display = 'none'; document.getElementById('print-preview').style.display = 'block';
-            } else {
-                document.getElementById('main-app').style.display = 'flex'; document.getElementById('print-preview').style.display = 'none';
-            }
+            if (element) { document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active', 'text-warning')); element.classList.add('active'); if(pageId === 'lab') element.classList.add('text-warning'); }
         }
-        function closePrintPreview() { showPage(currentVisitIndex !== -1 ? 'result-form' : 'ultrasound'); }
 
         function updateDashboard() {
             let todayStr = new Date().toLocaleDateString('vi-VN');
@@ -893,265 +845,122 @@
             let waitSA = db.visits.filter(v => (v.trangthai === 'Đang chờ' || v.trangthai === 'Lưu tạm') && v.ngay === todayStr).length;
             let waitXN = db.labVisits.filter(v => v.trangthai === 'Đang chờ' && v.ngay === todayStr).length;
             let done = db.visits.filter(v => (v.trangthai === 'Đã hoàn tất' || v.trangthai === 'Đã phát hành') && v.ngay === todayStr).length + db.labVisits.filter(v => v.trangthai === 'Đã hoàn tất' && v.ngay === todayStr).length;
-            
             document.getElementById('stat-total').innerText = total; document.getElementById('stat-wait-sa').innerText = waitSA; 
             document.getElementById('stat-wait-xn').innerText = waitXN; document.getElementById('stat-done').innerText = done;
         }
 
         function renderUIFromConfig() {
             document.getElementById('bacsi').innerHTML = db.config.doctors.map(dr => `<option value="${dr}">${dr}</option>`).join('');
-            
             document.getElementById('set-clinic-name').value = db.config.clinic.name || '';
             document.getElementById('set-clinic-address').value = db.config.clinic.address || '';
             document.getElementById('set-clinic-phone').value = db.config.clinic.phone || '';
-            
             let wh = db.config.clinic.workingHours || {};
             document.getElementById('set-wh-weekday').value = wh.weekday || '';
-            if(document.getElementById('set-wh-weekend')) {
-                document.getElementById('set-wh-weekend').value = wh.weekend || wh.saturday || '';
-            }
-            
+            if(document.getElementById('set-wh-weekend')) { document.getElementById('set-wh-weekend').value = wh.weekend || wh.saturday || ''; }
             const logoPreview = document.getElementById('set-logo-preview');
             if(db.config.clinic.logo) { logoPreview.src = db.config.clinic.logo; logoPreview.style.display = 'block'; }
-            
-            document.getElementById('list-doctors-table').innerHTML = db.config.doctors.map((dr, i) => `
-                <tr><td class="fw-bold">${dr}</td>
-                    <td>${db.config.signatures[dr] ? `<img src="${db.config.signatures[dr]}" style="height:30px">` : `<span class="text-muted small">Trống</span>`}<br><input type="file" class="form-control form-control-sm mt-1" style="width:140px; font-size:11px;" accept="image/*" onchange="uploadSignature(event, '${dr}')"></td>
-                    <td class="admin-only"><button class="btn btn-sm btn-outline-danger" onclick="removeDoctor(${i})"><i class="fas fa-trash"></i></button></td>
-                </tr>`).join('');
-                
+            document.getElementById('list-doctors-table').innerHTML = db.config.doctors.map((dr, i) => `<tr><td class="fw-bold">${dr}</td><td>${db.config.signatures[dr] ? `<img src="${db.config.signatures[dr]}" style="height:30px">` : `<span class="text-muted small">Trống</span>`}<br><input type="file" class="form-control form-control-sm mt-1" style="width:140px; font-size:11px;" accept="image/*" onchange="uploadSignature(event, '${dr}')"></td><td class="admin-only"><button class="btn btn-sm btn-outline-danger" onclick="removeDoctor(${i})"><i class="fas fa-trash"></i></button></td></tr>`).join('');
             let dAccs = Array.isArray(db.config.doctorAccounts) ? db.config.doctorAccounts : Object.values(db.config.doctorAccounts || {});
-            document.getElementById('list-doc-accounts-table').innerHTML = dAccs.map((acc, i) => `
-                <tr><td class="fw-bold">${acc.user}</td>
-                    <td>${acc.pass}</td>
-                    <td><button class="btn btn-sm btn-outline-danger" onclick="removeDocAccount(${i})"><i class="fas fa-trash"></i></button></td>
-                </tr>`).join('');
-            
+            document.getElementById('list-doc-accounts-table').innerHTML = dAccs.map((acc, i) => `<tr><td class="fw-bold">${acc.user}</td><td>${acc.pass}</td><td><button class="btn btn-sm btn-outline-danger" onclick="removeDocAccount(${i})"><i class="fas fa-trash"></i></button></td></tr>`).join('');
             let ps = db.config.printSettings || defaultPrintSettings;
-            document.getElementById('ps-font').value = ps.fontFamily; document.getElementById('ps-font-size').value = ps.fontSize;
-            document.getElementById('ps-line-height').value = ps.lineHeight; document.getElementById('ps-text-color').value = ps.textColor;
-            document.getElementById('ps-conclusion-color').value = ps.conclusionColor; document.getElementById('ps-margin').value = ps.pageMargin;
-            document.getElementById('ps-auto-fit').checked = ps.autoFitOnePage;
-
+            document.getElementById('ps-font').value = ps.fontFamily; document.getElementById('ps-font-size').value = ps.fontSize; document.getElementById('ps-line-height').value = ps.lineHeight; document.getElementById('ps-text-color').value = ps.textColor; document.getElementById('ps-conclusion-color').value = ps.conclusionColor; document.getElementById('ps-margin').value = ps.pageMargin; document.getElementById('ps-auto-fit').checked = ps.autoFitOnePage;
             renderTemplateList(); renderLabSettingsManager();
         }
 
         function saveClinicInfo() {
-            db.config.clinic.name = document.getElementById('set-clinic-name').value;
-            db.config.clinic.address = document.getElementById('set-clinic-address').value;
-            db.config.clinic.phone = document.getElementById('set-clinic-phone').value;
-            db.config.clinic.workingHours = {
-                weekday: document.getElementById('set-wh-weekday').value,
-                weekend: document.getElementById('set-wh-weekend').value
-            };
-            saveData(); 
-            showToast("Đã lưu thông tin phòng khám!");
+            db.config.clinic.name = document.getElementById('set-clinic-name').value; db.config.clinic.address = document.getElementById('set-clinic-address').value;
+            db.config.clinic.phone = document.getElementById('set-clinic-phone').value; db.config.clinic.workingHours = { weekday: document.getElementById('set-wh-weekday').value, weekend: document.getElementById('set-wh-weekend').value };
+            saveData(); showToast("Đã lưu thông tin phòng khám!");
         }
 
-        // TÀI KHOẢN BÁC SĨ
         function addDocAccount() {
-            let user = document.getElementById('new-doc-user').value.trim();
-            let pass = document.getElementById('new-doc-pass').value.trim();
-            
+            let user = document.getElementById('new-doc-user').value.trim(); let pass = document.getElementById('new-doc-pass').value.trim();
             if (user && pass) {
-                if (!db.config.doctorAccounts) db.config.doctorAccounts = [];
-                
-                if (!Array.isArray(db.config.doctorAccounts)) {
-                    db.config.doctorAccounts = Object.values(db.config.doctorAccounts);
-                }
-                
-                db.config.doctorAccounts.push({ user: user, pass: pass });
-                saveData();
-                
-                document.getElementById('new-doc-user').value = ''; 
-                document.getElementById('new-doc-pass').value = '';
-                showToast("Đã thêm tài khoản bác sĩ!");
-                renderUIFromConfig();
-            } else {
-                showToast("Vui lòng nhập đủ tài khoản và mật khẩu!", "warning");
-            }
+                if (!db.config.doctorAccounts) db.config.doctorAccounts = []; if (!Array.isArray(db.config.doctorAccounts)) { db.config.doctorAccounts = Object.values(db.config.doctorAccounts); }
+                db.config.doctorAccounts.push({ user: user, pass: pass }); saveData(); document.getElementById('new-doc-user').value = ''; document.getElementById('new-doc-pass').value = ''; showToast("Đã thêm tài khoản bác sĩ!"); renderUIFromConfig();
+            } else { showToast("Vui lòng nhập đủ tài khoản và mật khẩu!", "warning"); }
         }
-        
-        function removeDocAccount(index) {
-            if (confirm("Xóa tài khoản bác sĩ này?")) {
-                if (!Array.isArray(db.config.doctorAccounts)) {
-                    db.config.doctorAccounts = Object.values(db.config.doctorAccounts);
-                }
-                db.config.doctorAccounts.splice(index, 1); 
-                saveData(); 
-                showToast("Đã xóa tài khoản.");
-                renderUIFromConfig();
-            }
-        }
+        function removeDocAccount(index) { if (confirm("Xóa tài khoản bác sĩ này?")) { if (!Array.isArray(db.config.doctorAccounts)) { db.config.doctorAccounts = Object.values(db.config.doctorAccounts); } db.config.doctorAccounts.splice(index, 1); saveData(); showToast("Đã xóa tài khoản."); renderUIFromConfig(); } }
 
-        // --- LAB MANAGER ---
         function renderLabSettingsManager() {
-            let tests = db.config.labTests || [];
-            tests.sort((a,b) => a.category.localeCompare(b.category));
-            document.getElementById('list-labtests-table').innerHTML = tests.map((t, i) => `
-                <tr>
-                    <td><span class="badge bg-secondary">${t.category}</span></td>
-                    <td class="fw-bold">${t.name}</td>
-                    <td>${t.unit} / ${t.normal}</td>
-                    <td class="admin-only"><button class="btn btn-sm text-danger" onclick="deleteLabTest('${t.id}')"><i class="fas fa-times"></i></button></td>
-                </tr>
-            `).join('');
+            let tests = db.config.labTests || []; tests.sort((a,b) => a.category.localeCompare(b.category));
+            document.getElementById('list-labtests-table').innerHTML = tests.map((t, i) => `<tr><td><span class="badge bg-secondary">${t.category}</span></td><td class="fw-bold">${t.name}</td><td>${t.unit} / ${t.normal}</td><td class="admin-only"><button class="btn btn-sm text-danger" onclick="deleteLabTest('${t.id}')"><i class="fas fa-times"></i></button></td></tr>`).join('');
         }
         function addLabTest() {
-            let cat = document.getElementById('new-lab-cat').value.trim() || 'Khác';
-            let name = document.getElementById('new-lab-name').value.trim();
-            let unit = document.getElementById('new-lab-unit').value.trim();
-            let normal = document.getElementById('new-lab-normal').value.trim();
+            let cat = document.getElementById('new-lab-cat').value.trim() || 'Khác'; let name = document.getElementById('new-lab-name').value.trim(); let unit = document.getElementById('new-lab-unit').value.trim(); let normal = document.getElementById('new-lab-normal').value.trim();
             if(!name) { showToast("Cần nhập tên Test!", "error"); return; }
-            let id = 'lb_' + Date.now().toString(36);
-            if(!db.config.labTests) db.config.labTests = [];
-            db.config.labTests.push({ id, name, category: cat, unit, normal, active: true });
-            saveData(); document.getElementById('new-lab-name').value = ''; showToast("Đã thêm test xét nghiệm!");
-            renderLabSettingsManager(); buildMultiServicesUI();
+            let id = 'lb_' + Date.now().toString(36); if(!db.config.labTests) db.config.labTests = []; db.config.labTests.push({ id, name, category: cat, unit, normal, active: true });
+            saveData(); document.getElementById('new-lab-name').value = ''; showToast("Đã thêm test xét nghiệm!"); renderLabSettingsManager(); buildMultiServicesUI();
         }
-        function deleteLabTest(id) {
-            if(confirm("Xóa test xét nghiệm này?")) {
-                db.config.labTests = db.config.labTests.filter(t => t.id !== id);
-                saveData(); renderLabSettingsManager(); buildMultiServicesUI();
-            }
-        }
+        function deleteLabTest(id) { if(confirm("Xóa test xét nghiệm này?")) { db.config.labTests = db.config.labTests.filter(t => t.id !== id); saveData(); renderLabSettingsManager(); buildMultiServicesUI(); } }
 
-        // --- PRINT CONFIG ---
         function previewPrintSettings() { applyPrintSettingsToDOM(true); }
         function savePrintSettings() {
-            db.config.printSettings = {
-                fontFamily: document.getElementById('ps-font').value, fontSize: document.getElementById('ps-font-size').value,
-                titleFontSize: 14, textColor: document.getElementById('ps-text-color').value, organColor: document.getElementById('ps-text-color').value,
-                conclusionColor: document.getElementById('ps-conclusion-color').value, lineHeight: document.getElementById('ps-line-height').value,
-                pageMargin: document.getElementById('ps-margin').value, autoFitOnePage: document.getElementById('ps-auto-fit').checked
-            };
+            db.config.printSettings = { fontFamily: document.getElementById('ps-font').value, fontSize: document.getElementById('ps-font-size').value, titleFontSize: 14, textColor: document.getElementById('ps-text-color').value, organColor: document.getElementById('ps-text-color').value, conclusionColor: document.getElementById('ps-conclusion-color').value, lineHeight: document.getElementById('ps-line-height').value, pageMargin: document.getElementById('ps-margin').value, autoFitOnePage: document.getElementById('ps-auto-fit').checked };
             saveData(); showToast("Đã lưu cấu hình phiếu in!");
         }
         function applyPrintSettingsToDOM(fromInput = false) {
             let ps = db.config.printSettings || defaultPrintSettings;
-            if(fromInput) {
-                ps.fontFamily = document.getElementById('ps-font').value; ps.fontSize = document.getElementById('ps-font-size').value;
-                ps.lineHeight = document.getElementById('ps-line-height').value; ps.textColor = document.getElementById('ps-text-color').value;
-                ps.conclusionColor = document.getElementById('ps-conclusion-color').value; ps.pageMargin = document.getElementById('ps-margin').value;
-            }
-            const root = document.documentElement;
-            root.style.setProperty('--p-font', ps.fontFamily); root.style.setProperty('--p-font-size', ps.fontSize + 'pt');
-            root.style.setProperty('--p-text-color', ps.textColor); root.style.setProperty('--p-organ-color', ps.organColor || ps.textColor);
-            root.style.setProperty('--p-conclusion-color', ps.conclusionColor); root.style.setProperty('--p-line-height', ps.lineHeight);
-            root.style.setProperty('--p-margin', ps.pageMargin + 'mm');
-            root.style.setProperty('--p-spacing', '5px'); root.style.setProperty('--p-img-height', '75mm');
+            if(fromInput) { ps.fontFamily = document.getElementById('ps-font').value; ps.fontSize = document.getElementById('ps-font-size').value; ps.lineHeight = document.getElementById('ps-line-height').value; ps.textColor = document.getElementById('ps-text-color').value; ps.conclusionColor = document.getElementById('ps-conclusion-color').value; ps.pageMargin = document.getElementById('ps-margin').value; }
         }
 
-        // --- UTILS ---
         function compressImage(file, maxWidth, callback) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width; let height = img.height;
+            const reader = new FileReader(); reader.onload = function(e) {
+                const img = new Image(); img.onload = function() {
+                    const canvas = document.createElement('canvas'); let width = img.width; let height = img.height;
                     if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                    canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL('image/jpeg', 0.8));
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
         }
-        function uploadLogo(event) {
-            if(event.target.files.length > 0) {
-                compressImage(event.target.files[0], 500, function(dataUrl) {
-                    db.config.clinic.logo = dataUrl; document.getElementById('set-logo-preview').src = dataUrl; 
-                    document.getElementById('set-logo-preview').style.display = 'block'; saveData(); showToast("Đã cập nhật Logo!");
-                });
-            }
-        }
-        function uploadSignature(event, doctorName) {
-            if(event.target.files.length > 0) {
-                compressImage(event.target.files[0], 400, function(dataUrl) {
-                    db.config.signatures[doctorName] = dataUrl; saveData(); showToast("Đã cập nhật chữ ký cho " + doctorName);
-                });
-            }
-        }
-        function addDoctor() {
-            let newDr = document.getElementById('new-doctor').value.trim();
-            if (newDr) { db.config.doctors.push(newDr); document.getElementById('new-doctor').value = ''; saveData(); }
-        }
-        function removeDoctor(index) {
-            if(confirm("Xóa bác sĩ này?")) { let drName = db.config.doctors[index]; delete db.config.signatures[drName]; db.config.doctors.splice(index, 1); saveData(); }
-        }
+        function uploadLogo(event) { if(event.target.files.length > 0) { compressImage(event.target.files[0], 500, function(dataUrl) { db.config.clinic.logo = dataUrl; document.getElementById('set-logo-preview').src = dataUrl; document.getElementById('set-logo-preview').style.display = 'block'; saveData(); showToast("Đã cập nhật Logo!"); }); } }
+        function uploadSignature(event, doctorName) { if(event.target.files.length > 0) { compressImage(event.target.files[0], 400, function(dataUrl) { db.config.signatures[doctorName] = dataUrl; saveData(); showToast("Đã cập nhật chữ ký cho " + doctorName); }); } }
+        function addDoctor() { let newDr = document.getElementById('new-doctor').value.trim(); if (newDr) { db.config.doctors.push(newDr); document.getElementById('new-doctor').value = ''; saveData(); } }
+        function removeDoctor(index) { if(confirm("Xóa bác sĩ này?")) { let drName = db.config.doctors[index]; delete db.config.signatures[drName]; db.config.doctors.splice(index, 1); saveData(); } }
 
-        // --- TEMPLATES ---
-        function renderTemplateList() {
-            document.getElementById('template-list').innerHTML = db.config.templates.map((tmp, index) => `<li class="list-group-item" style="cursor:pointer" onclick="openTemplateEditor(${index})">${tmp.name}</li>`).join('');
-        }
+        function renderTemplateList() { document.getElementById('template-list').innerHTML = db.config.templates.map((tmp, index) => `<li class="list-group-item" style="cursor:pointer" onclick="openTemplateEditor(${index})">${tmp.name}</li>`).join(''); }
         function openTemplateEditor(index) {
-            let tmp = db.config.templates[index];
-            document.getElementById('template-editor').style.display = 'block';
-            document.getElementById('edit-tmp-index').value = index;
-            document.getElementById('edit-tmp-name').value = tmp.name; document.getElementById('edit-tmp-mota').value = tmp.mota;
-            document.getElementById('edit-tmp-ketluan').value = tmp.ketluan; document.getElementById('edit-tmp-ghichu').value = tmp.ghichu;
+            let tmp = db.config.templates[index]; document.getElementById('template-editor').style.display = 'block'; document.getElementById('edit-tmp-index').value = index;
+            document.getElementById('edit-tmp-name').value = tmp.name; document.getElementById('edit-tmp-mota').value = tmp.mota; document.getElementById('edit-tmp-ketluan').value = tmp.ketluan; document.getElementById('edit-tmp-ghichu').value = tmp.ghichu;
         }
-        function createNewTemplate() {
-            db.config.templates.push({ name: "Mẫu siêu âm mới", mota: "", ketluan: "", ghichu: "" }); saveData();
-            openTemplateEditor(db.config.templates.length - 1);
-        }
+        function createNewTemplate() { db.config.templates.push({ name: "Mẫu siêu âm mới", mota: "", ketluan: "", ghichu: "" }); saveData(); openTemplateEditor(db.config.templates.length - 1); }
         function saveTemplateEdit() {
-            let index = document.getElementById('edit-tmp-index').value;
-            db.config.templates[index].name = document.getElementById('edit-tmp-name').value;
-            db.config.templates[index].mota = document.getElementById('edit-tmp-mota').value;
-            db.config.templates[index].ketluan = document.getElementById('edit-tmp-ketluan').value;
-            db.config.templates[index].ghichu = document.getElementById('edit-tmp-ghichu').value;
+            let index = document.getElementById('edit-tmp-index').value; db.config.templates[index].name = document.getElementById('edit-tmp-name').value;
+            db.config.templates[index].mota = document.getElementById('edit-tmp-mota').value; db.config.templates[index].ketluan = document.getElementById('edit-tmp-ketluan').value; db.config.templates[index].ghichu = document.getElementById('edit-tmp-ghichu').value;
             saveData(); buildMultiServicesUI(); showToast("Đã lưu mẫu siêu âm!");
         }
-        function deleteTemplate() {
-            let index = document.getElementById('edit-tmp-index').value;
-            if(confirm("Xóa mẫu này? Không thể hoàn tác.")) {
-                db.config.templates.splice(index, 1); saveData(); document.getElementById('template-editor').style.display = 'none'; buildMultiServicesUI();
-            }
-        }
+        function deleteTemplate() { let index = document.getElementById('edit-tmp-index').value; if(confirm("Xóa mẫu này? Không thể hoàn tác.")) { db.config.templates.splice(index, 1); saveData(); document.getElementById('template-editor').style.display = 'none'; buildMultiServicesUI(); } }
 
-        // --- THUẬT TOÁN SẮP XẾP ƯU TIÊN VÀ TÌM KIẾM ---
         function sortSearchResults(results, query) {
-            let safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            let exactWordRegex = new RegExp("(^|\\s)" + safeQuery + "(?=\\s|$)", "i");
-            
+            let safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); let exactWordRegex = new RegExp("(^|\\s)" + safeQuery + "(?=\\s|$)", "i");
             return results.sort((a, b) => {
                 let aName = a.hoten.toLowerCase(); let bName = b.hoten.toLowerCase();
-                
-                let aExact = aName === query ? 1 : 0; let bExact = bName === query ? 1 : 0;
-                if(aExact !== bExact) return bExact - aExact;
-                
-                let aWord = exactWordRegex.test(aName) ? 1 : 0; let bWord = exactWordRegex.test(bName) ? 1 : 0;
-                if(aWord !== bWord) return bWord - aWord;
-
-                let aStarts = aName.startsWith(query) ? 1 : 0; let bStarts = bName.startsWith(query) ? 1 : 0;
-                return bStarts - aStarts;
+                let aExact = aName === query ? 1 : 0; let bExact = bName === query ? 1 : 0; if(aExact !== bExact) return bExact - aExact;
+                let aWord = exactWordRegex.test(aName) ? 1 : 0; let bWord = exactWordRegex.test(bName) ? 1 : 0; if(aWord !== bWord) return bWord - aWord;
+                let aStarts = aName.startsWith(query) ? 1 : 0; let bStarts = bName.startsWith(query) ? 1 : 0; return bStarts - aStarts;
             });
         }
 
-        function handleAutocomplete() {
-            const query = document.getElementById('hoten').value.toLowerCase().trim();
-            const box = document.getElementById('suggestion-box');
-            const historyBox = document.getElementById('mini-history-box');
-
-            if (query.length < 2) { 
-                box.style.display = 'none'; 
-                if(document.getElementById('current-mabn').value !== '') {
-                    document.getElementById('current-mabn').value = ''; historyBox.style.display = 'none';
-                    document.getElementById('form-mode-title').innerHTML = '+ TẠO BỆNH NHÂN MỚI'; document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold';
-                    document.getElementById('tuoi').value = ''; document.getElementById('sdt').value = ''; document.getElementById('diachi').value = '';
-                } return; 
+        function checkInputState() {
+            let currentMabn = document.getElementById('current-mabn').value; let currentInput = document.getElementById('hoten').value.trim().toUpperCase();
+            if (currentMabn) {
+                let p = db.patients.find(x => x.mabn === currentMabn);
+                if (p && p.hoten !== currentInput) { document.getElementById('current-mabn').value = ''; document.getElementById('form-mode-title').innerHTML = '+ TẠO BỆNH NHÂN MỚI'; document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold'; document.getElementById('mini-history-box').style.display = 'none'; }
             }
-            
-            let safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            let prefixRegex = new RegExp("(^|\\s)" + safeQuery, "i");
-            
+        }
+
+        function handleAutocomplete() {
+            const query = document.getElementById('hoten').value.toLowerCase().trim(); const box = document.getElementById('suggestion-box');
+            if (query.length < 2) { box.style.display = 'none'; return; }
+            let safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); let prefixRegex = new RegExp("(^|\\s)" + safeQuery, "i");
             let results = db.patients.filter(p => prefixRegex.test(p.hoten) || (p.sdt && p.sdt.includes(query)));
             if (results.length > 0) {
                 results = sortSearchResults(results, query);
-                box.innerHTML = results.slice(0, 8).map(p => `<div class="suggestion-item" onmousedown="selectPatient('${p.mabn}')"><div class="d-flex justify-content-between align-items-center mb-1"><strong class="text-primary">${p.hoten}</strong><span class="badge bg-secondary">${p.mabn}</span></div><div class="text-muted small">${p.tuoi} tuổi - ${p.gioitinh} - SĐT: ${p.sdt || 'Trống'}</div></div>`).join('');
+                let uniqueResults = []; let seenIds = new Set();
+                for (let r of results) { if(!seenIds.has(r.mabn)) { seenIds.add(r.mabn); uniqueResults.push(r); } }
+                box.innerHTML = uniqueResults.slice(0, 8).map(p => `<div class="suggestion-item" onmousedown="selectPatient('${p.mabn}')"><div class="d-flex justify-content-between align-items-center mb-1"><strong class="text-primary">${p.hoten}</strong><span class="badge bg-secondary">${p.mabn}</span></div><div class="text-muted small">${p.tuoi} tuổi - ${p.gioitinh} - SĐT: ${p.sdt || 'Trống'}</div></div>`).join('');
                 box.style.display = 'block';
             } else { box.style.display = 'none'; }
         }
@@ -1159,289 +968,177 @@
         function selectPatient(mabn) {
             const p = db.patients.find(x => x.mabn === mabn);
             if(p) {
-                document.getElementById('current-mabn').value = p.mabn; document.getElementById('hoten').value = p.hoten; document.getElementById('tuoi').value = p.tuoi;
-                document.getElementById('gioitinh').value = p.gioitinh; document.getElementById('sdt').value = p.sdt; document.getElementById('diachi').value = p.diachi;
-                
-                let title = document.getElementById('form-mode-title');
-                title.innerHTML = `<i class="fas fa-user-check"></i> BỆNH NHÂN CŨ: <span class="text-success">${p.hoten}</span>`;
-                title.className = 'mb-3 text-success fw-bold'; document.getElementById('suggestion-box').style.display = 'none';
-
-                const pVisits = db.visits.filter(v => v.mabn === mabn);
-                const historyBox = document.getElementById('mini-history-box');
+                document.getElementById('current-mabn').value = p.mabn; document.getElementById('hoten').value = p.hoten; document.getElementById('tuoi').value = p.tuoi; document.getElementById('gioitinh').value = p.gioitinh; document.getElementById('sdt').value = p.sdt; document.getElementById('diachi').value = p.diachi;
+                let title = document.getElementById('form-mode-title'); title.innerHTML = `<i class="fas fa-user-check"></i> BỆNH NHÂN CŨ: <span class="text-success">${p.hoten}</span>`; title.className = 'mb-3 text-success fw-bold'; document.getElementById('suggestion-box').style.display = 'none';
+                const pVisits = db.visits.filter(v => v.mabn === mabn); const historyBox = document.getElementById('mini-history-box');
                 if(pVisits.length > 0) {
                     let histHtml = pVisits.slice(-2).reverse().map(v => `<li class="mb-1"><strong>${v.ngay}</strong>: ${v.loaisa}</li>`).join('');
-                    historyBox.innerHTML = `<strong><i class="fas fa-history"></i> Lịch sử siêu âm gần nhất:</strong><ul class="mb-0 small" style="padding-left:1.5rem;">${histHtml}</ul>`;
-                    historyBox.style.display = 'block';
+                    historyBox.innerHTML = `<strong><i class="fas fa-history"></i> Lịch sử siêu âm gần nhất:</strong><ul class="mb-0 small" style="padding-left:1.5rem;">${histHtml}</ul>`; historyBox.style.display = 'block';
                 }
             }
         }
         
         function resetReceptionForm() {
-            document.getElementById('form-patient').reset(); 
-            document.getElementById('current-mabn').value = '';
-            document.getElementById('form-mode-title').innerHTML = '+ TẠO BỆNH NHÂN MỚI'; 
-            document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold';
-            document.getElementById('suggestion-box').style.display = 'none'; 
-            document.getElementById('mini-history-box').style.display = 'none';
-            document.querySelectorAll('.chk-sa-item, .chk-xn-item').forEach(btn => btn.checked = false);
+            document.getElementById('form-patient').reset(); document.getElementById('current-mabn').value = '';
+            document.getElementById('form-mode-title').innerHTML = '+ TẠO BỆNH NHÂN MỚI'; document.getElementById('form-mode-title').className = 'mb-3 text-primary fw-bold';
+            document.getElementById('suggestion-box').style.display = 'none'; document.getElementById('mini-history-box').style.display = 'none'; document.querySelectorAll('.chk-sa-item, .chk-xn-item').forEach(btn => btn.checked = false);
         }
 
         function buildMultiServicesUI() {
             let saBox = document.getElementById('box-multi-sa');
             if(db.config.templates && db.config.templates.length > 0) {
-                saBox.innerHTML = db.config.templates.map((t, idx) => `
-                    <div class="form-check" style="margin-right: 25px; margin-bottom: 12px; display: flex; align-items: center;">
-                        <input class="form-check-input chk-sa-item shadow-sm" type="checkbox" id="chk-sa-${idx}" value="${idx}" style="transform: scale(1.4); margin-top: 0; cursor: pointer;">
-                        <label class="form-check-label fw-bold text-primary ms-2" for="chk-sa-${idx}" style="cursor:pointer; font-size: 15px;">${t.name}</label>
-                    </div>
-                `).join('');
-            } else {
-                saBox.innerHTML = `<div class="text-muted small w-100">Chưa có mẫu siêu âm nào. Vui lòng thêm trong cài đặt.</div>`;
-            }
+                saBox.innerHTML = db.config.templates.map((t, idx) => `<div class="form-check" style="margin-right: 25px; margin-bottom: 12px; display: flex; align-items: center;"><input class="form-check-input chk-sa-item shadow-sm" type="checkbox" id="chk-sa-${idx}" value="${idx}" style="transform: scale(1.4); margin-top: 0; cursor: pointer;"><label class="form-check-label fw-bold text-primary ms-2" for="chk-sa-${idx}" style="cursor:pointer; font-size: 15px;">${t.name}</label></div>`).join('');
+            } else { saBox.innerHTML = `<div class="text-muted small w-100">Chưa có mẫu siêu âm nào. Vui lòng thêm trong cài đặt.</div>`; }
             
-            let xnBox = document.getElementById('box-multi-xn');
-            let tests = db.config.labTests || [];
+            let xnBox = document.getElementById('box-multi-xn'); let tests = db.config.labTests || [];
             if(tests.length > 0) {
                 let groups = tests.reduce((r, a) => { r[a.category] = r[a.category] || []; r[a.category].push(a); return r; }, {});
                 let html = '';
                 for (let cat in groups) {
-                    html += `<div class="w-100 mt-2 mb-2 fw-bold text-danger border-bottom pb-1" style="font-size: 14px;">${cat.toUpperCase()}</div>`;
-                    html += `<div class="d-flex flex-wrap align-items-center mb-2">`;
-                    html += groups[cat].map(t => `
-                        <div class="form-check" style="margin-right: 25px; margin-bottom: 8px; display: flex; align-items: center;">
-                            <input class="form-check-input chk-xn-item shadow-sm" type="checkbox" id="chk-xn-${t.id}" value="${t.id}" style="transform: scale(1.4); margin-top: 0; border-color: #fca5a5; cursor: pointer;">
-                            <label class="form-check-label fw-bold ms-2" style="color: #991b1b; cursor:pointer; font-size: 15px;" for="chk-xn-${t.id}">${t.name}</label>
-                        </div>
-                    `).join('');
+                    html += `<div class="w-100 mt-2 mb-2 fw-bold text-danger border-bottom pb-1" style="font-size: 14px;">${cat.toUpperCase()}</div><div class="d-flex flex-wrap align-items-center mb-2">`;
+                    html += groups[cat].map(t => `<div class="form-check" style="margin-right: 25px; margin-bottom: 8px; display: flex; align-items: center;"><input class="form-check-input chk-xn-item shadow-sm" type="checkbox" id="chk-xn-${t.id}" value="${t.id}" style="transform: scale(1.4); margin-top: 0; border-color: #fca5a5; cursor: pointer;"><label class="form-check-label fw-bold ms-2" style="color: #991b1b; cursor:pointer; font-size: 15px;" for="chk-xn-${t.id}">${t.name}</label></div>`).join('');
                     html += `</div>`;
                 }
                 xnBox.innerHTML = html;
-            } else {
-                xnBox.innerHTML = `<div class="text-muted small w-100">Chưa có danh mục xét nghiệm nào. Vui lòng thêm trong cài đặt.</div>`;
-            }
+            } else { xnBox.innerHTML = `<div class="text-muted small w-100">Chưa có danh mục xét nghiệm nào. Vui lòng thêm trong cài đặt.</div>`; }
         }
 
-        function genCode(prefix, array) {
+        function generatePatientId() {
+            if (!db.patients || db.patients.length === 0) return "BN00001";
+            let maxNum = 0; db.patients.forEach(p => { let num = parseInt(p.mabn.replace("BN", "")); if (!isNaN(num) && num > maxNum) maxNum = num; }); return "BN" + String(maxNum + 1).padStart(5, '0');
+        }
+
+        function genSafeCode(prefix, array) {
             let today = new Date(); let ds = today.getFullYear().toString().substr(-2) + (today.getMonth()+1).toString().padStart(2,'0') + today.getDate().toString().padStart(2,'0');
-            return prefix + ds + String(array.length + 1).padStart(4, '0');
+            let currentPrefix = prefix + ds; let maxNum = 0;
+            array.forEach(item => { if(item.maluot && item.maluot.startsWith(currentPrefix)) { let num = parseInt(item.maluot.slice(-4)); if(!isNaN(num) && num > maxNum) maxNum = num; } });
+            return currentPrefix + String(maxNum + 1).padStart(4, '0');
         }
 
         function createMultiVisits() {
-            let hoten = document.getElementById('hoten').value.trim();
-            if (!hoten) { showToast("Vui lòng nhập họ tên!", "error"); return; }
+            let hoten = document.getElementById('hoten').value.trim(); if (!hoten) { showToast("Vui lòng nhập họ tên!", "error"); return; }
             let mabn = document.getElementById('current-mabn').value;
             
             if (!mabn) {
-                mabn = "BN" + String(db.patients.length + 1).padStart(5, '0');
+                mabn = generatePatientId(); 
                 db.patients.push({ mabn, hoten: hoten.toUpperCase(), tuoi: document.getElementById('tuoi').value, gioitinh: document.getElementById('gioitinh').value, sdt: document.getElementById('sdt').value, diachi: document.getElementById('diachi').value });
+                logAction('TẠO MỚI', 'BỆNH NHÂN', `Tạo hồ sơ mới: ${hoten.toUpperCase()} (${mabn})`);
             } else {
                 let p = db.patients.find(x => x.mabn === mabn);
                 if(p) { p.hoten = hoten.toUpperCase(); p.tuoi = document.getElementById('tuoi').value; p.gioitinh = document.getElementById('gioitinh').value; p.sdt = document.getElementById('sdt').value; p.diachi = document.getElementById('diachi').value; }
             }
 
-            let today = new Date().toLocaleDateString('vi-VN');
-            let bacsi = document.getElementById('bacsi').value;
-            let hasAction = false;
-
+            let today = new Date().toLocaleDateString('vi-VN'); let bacsi = document.getElementById('bacsi').value; let hasAction = false;
             let saChecked = document.querySelectorAll('.chk-sa-item:checked');
             if(saChecked.length > 0) {
                 saChecked.forEach(chk => {
-                    let tmp = JSON.parse(JSON.stringify(db.config.templates[chk.value])); 
-                    let maluot = genCode("SA", db.visits);
+                    let tmp = JSON.parse(JSON.stringify(db.config.templates[chk.value])); let maluot = genSafeCode("SA", db.visits); 
                     let token = Math.random().toString(36).substr(2, 12);
                     db.visits.push({ maluot, mabn, ngay: today, loaisa: tmp.name, bacsi, trangthai: "Đang chờ", templateData: tmp, ketluanchung: tmp.ketluan, ghichuchung: tmp.ghichu, images: [], token, publicResult: true });
-                    hasAction = true;
+                    logAction('TẠO MỚI', 'SIÊU ÂM', `Chỉ định siêu âm ${tmp.name} cho mã ${mabn} (Lượt: ${maluot})`); hasAction = true;
                 });
             }
 
             let xnChecked = Array.from(document.querySelectorAll('.chk-xn-item:checked')).map(el => el.value);
             if(xnChecked.length > 0) {
-                let maluot = genCode("XN", db.labVisits);
+                let maluot = genSafeCode("XN", db.labVisits); 
                 db.labVisits.push({ maluot, mabn, ngay: today, bacsi, trangthai: "Đang chờ", tests: xnChecked, results: {} });
-                hasAction = true;
+                logAction('TẠO MỚI', 'XÉT NGHIỆM', `Chỉ định xét nghiệm cho mã ${mabn} (Lượt: ${maluot})`); hasAction = true;
             }
 
-            if(!hasAction) { showToast("Vui lòng chọn ít nhất 1 dịch vụ (Siêu âm hoặc Xét nghiệm)!", "error"); return; }
-            
+            if(!hasAction) { showToast("Vui lòng chọn ít nhất 1 dịch vụ!", "error"); return; }
             saveData(); showToast("Tạo chỉ định thành công!"); resetReceptionForm();
         }
 
-        // --- PATIENT MANAGEMENT ---
         function editPatient(mabn) {
-            const p = db.patients.find(x => x.mabn === mabn);
-            if (!p) { showToast("Không tìm thấy bệnh nhân!", "error"); return; }
-            showPage('reception');
-            document.getElementById('current-mabn').value = p.mabn;
-            document.getElementById('hoten').value = p.hoten || '';
-            document.getElementById('tuoi').value = p.tuoi || '';
-            document.getElementById('gioitinh').value = p.gioitinh || 'Nam';
-            document.getElementById('sdt').value = p.sdt || '';
-            document.getElementById('diachi').value = p.diachi || '';
-            document.getElementById('form-mode-title').innerHTML = '<i class="fas fa-user-edit"></i> CHỈNH SỬA THÔNG TIN BỆNH NHÂN';
-            document.getElementById('form-mode-title').className = 'mb-3 text-warning fw-bold';
+            const p = db.patients.find(x => x.mabn === mabn); if (!p) { showToast("Không tìm thấy bệnh nhân!", "error"); return; }
+            showPage('reception'); document.getElementById('current-mabn').value = p.mabn; document.getElementById('hoten').value = p.hoten || '';
+            document.getElementById('tuoi').value = p.tuoi || ''; document.getElementById('gioitinh').value = p.gioitinh || 'Nam'; document.getElementById('sdt').value = p.sdt || ''; document.getElementById('diachi').value = p.diachi || '';
+            document.getElementById('form-mode-title').innerHTML = '<i class="fas fa-user-edit"></i> CHỈNH SỬA THÔNG TIN BỆNH NHÂN'; document.getElementById('form-mode-title').className = 'mb-3 text-warning fw-bold';
             document.getElementById('suggestion-box').style.display = 'none';
-            const historyBox = document.getElementById('mini-history-box');
-            const pVisits = db.visits.filter(v => v.mabn === mabn);
+            const historyBox = document.getElementById('mini-history-box'); const pVisits = db.visits.filter(v => v.mabn === mabn);
             historyBox.innerHTML = pVisits.length ? '<strong><i class="fas fa-history"></i> Lịch sử gần nhất:</strong><ul class="mb-0 small">' + pVisits.slice(-3).reverse().map(v => `<li>${v.ngay}: ${v.loaisa}</li>`).join('') + '</ul>' : '';
-            historyBox.style.display = pVisits.length ? 'block' : 'none';
-            showToast('Đã mở thông tin bệnh nhân để chỉnh sửa.');
+            historyBox.style.display = pVisits.length ? 'block' : 'none'; showToast('Đã mở thông tin bệnh nhân để chỉnh sửa.');
         }
 
         function savePatientInfo() {
-            const mabn = document.getElementById('current-mabn').value;
-            const hoten = document.getElementById('hoten').value.trim();
-            if (!mabn) { showToast('Hãy chọn bệnh nhân cần sửa trước!', 'error'); return; }
-            if (!hoten) { showToast('Vui lòng nhập họ tên!', 'error'); return; }
-            const p = db.patients.find(x => x.mabn === mabn);
-            if (!p) { showToast('Không tìm thấy bệnh nhân!', 'error'); return; }
-            p.hoten = hoten.toUpperCase();
-            p.tuoi = document.getElementById('tuoi').value;
-            p.gioitinh = document.getElementById('gioitinh').value;
-            p.sdt = document.getElementById('sdt').value;
-            p.diachi = document.getElementById('diachi').value;
-            saveData();
-            showToast('Đã lưu thông tin bệnh nhân!');
+            const mabn = document.getElementById('current-mabn').value; const hoten = document.getElementById('hoten').value.trim();
+            if (!mabn) { showToast('Hãy chọn bệnh nhân cần sửa trước!', 'error'); return; } if (!hoten) { showToast('Vui lòng nhập họ tên!', 'error'); return; }
+            const p = db.patients.find(x => x.mabn === mabn); if (!p) { showToast('Không tìm thấy bệnh nhân!', 'error'); return; }
+            p.hoten = hoten.toUpperCase(); p.tuoi = document.getElementById('tuoi').value; p.gioitinh = document.getElementById('gioitinh').value; p.sdt = document.getElementById('sdt').value; p.diachi = document.getElementById('diachi').value;
+            logAction('CẬP NHẬT', 'BỆNH NHÂN', `Cập nhật thông tin cho mã ${mabn}`); saveData(); showToast('Đã lưu thông tin bệnh nhân!');
         }
 
-        function editPatientFromCurrentVisit() {
-            if (currentVisitIndex === -1 || !db.visits[currentVisitIndex]) { showToast('Không xác định được lượt khám!', 'error'); return; }
-            editPatient(db.visits[currentVisitIndex].mabn);
-        }
+        function editPatientFromCurrentVisit() { if (currentVisitIndex === -1 || !db.visits[currentVisitIndex]) { showToast('Không xác định được lượt khám!', 'error'); return; } editPatient(db.visits[currentVisitIndex].mabn); }
 
         function deletePatient(mabn) {
             if(confirm("CẢNH BÁO: Thao tác này sẽ xóa Bệnh nhân và TOÀN BỘ lịch sử khám/xét nghiệm.\nBạn có chắc chắn muốn xóa không?")) {
-                db.patients = db.patients.filter(p => p.mabn !== mabn);
-                db.visits = db.visits.filter(v => v.mabn !== mabn);
-                db.labVisits = db.labVisits.filter(v => v.mabn !== mabn);
-                saveData();
-                showToast("Đã xóa bệnh nhân và lịch sử!");
-                searchFullPatients();
-                document.getElementById('patient-history-panel').style.display = 'none';
+                let p = db.patients.find(x => x.mabn === mabn); logAction('XÓA', 'BỆNH NHÂN', `Xóa toàn bộ hồ sơ của ${p ? p.hoten : ''} (${mabn})`);
+                db.patients = db.patients.filter(p => p.mabn !== mabn); db.visits = db.visits.filter(v => v.mabn !== mabn); db.labVisits = db.labVisits.filter(v => v.mabn !== mabn);
+                saveData(); showToast("Đã xóa bệnh nhân và lịch sử!"); searchFullPatients(); document.getElementById('patient-history-panel').style.display = 'none';
                 if(document.getElementById('current-mabn').value === mabn) { resetReceptionForm(); }
             }
         }
 
-        // --- XÓA LƯỢT KHÁM ---
         function deleteVisit(index) {
             if(confirm("Xóa lượt siêu âm này?")) {
-                db.visits.splice(index, 1);
-                saveData(); showToast("Đã xóa lượt siêu âm!");
-                renderWaitingList(); updateDashboard();
-                if(currentVisitIndex === index) { showPage('ultrasound'); currentVisitIndex = -1; }
+                logAction('XÓA', 'SIÊU ÂM', `Xóa lượt siêu âm ${db.visits[index].maluot}`); db.visits.splice(index, 1); saveData(); showToast("Đã xóa lượt siêu âm!");
+                renderWaitingList(); updateDashboard(); if(currentVisitIndex === index) { showPage('ultrasound'); currentVisitIndex = -1; }
             }
         }
         function deleteLabVisit(index) {
-            if(confirm("Xóa lượt xét nghiệm này?")) {
-                db.labVisits.splice(index, 1);
-                saveData(); showToast("Đã xóa lượt xét nghiệm!");
-                renderLabList(); updateDashboard();
-            }
+            if(confirm("Xóa lượt xét nghiệm này?")) { logAction('XÓA', 'XÉT NGHIỆM', `Xóa lượt xét nghiệm ${db.labVisits[index].maluot}`); db.labVisits.splice(index, 1); saveData(); showToast("Đã xóa lượt xét nghiệm!"); renderLabList(); updateDashboard(); }
         }
         function deleteVisitFromHistory(type, maluot, mabn) {
             if(confirm("Xóa lượt khám/xét nghiệm này?")) {
-                if(type === 'SA') db.visits = db.visits.filter(v => v.maluot !== maluot);
-                else db.labVisits = db.labVisits.filter(v => v.maluot !== maluot);
-                saveData(); showToast("Đã xóa lượt khám!");
-                viewHistory(mabn); updateDashboard(); renderWaitingList(); renderLabList();
+                logAction('XÓA', 'LỊCH SỬ', `Xóa lượt ${type} ${maluot} của mã ${mabn} từ lịch sử`);
+                if(type === 'SA') db.visits = db.visits.filter(v => v.maluot !== maluot); else db.labVisits = db.labVisits.filter(v => v.maluot !== maluot);
+                saveData(); showToast("Đã xóa lượt khám!"); viewHistory(mabn); updateDashboard(); renderWaitingList(); renderLabList();
             }
         }
 
-        // --- ULTRASOUND RENDER ---
         function renderWaitingList() {
-            const tbody = document.getElementById('waiting-list');
-            const fDate = document.getElementById('filter-date').value; 
-            const fStatus = document.getElementById('filter-status').value; 
-            const fSearch = document.getElementById('filter-search').value.toLowerCase();
-            
-            let todayObj = new Date();
-            let todayStr = todayObj.toLocaleDateString('vi-VN');
-            
-            let yestObj = new Date(todayObj); 
-            yestObj.setDate(yestObj.getDate() - 1);
-            let yesterdayStr = yestObj.toLocaleDateString('vi-VN');
-
-            let sevenDaysAgo = new Date(todayObj); 
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const tbody = document.getElementById('waiting-list'); const fDate = document.getElementById('filter-date').value; const fStatus = document.getElementById('filter-status').value; const fSearch = document.getElementById('filter-search').value.toLowerCase();
+            let todayObj = new Date(); let todayStr = todayObj.toLocaleDateString('vi-VN'); let yestObj = new Date(todayObj); yestObj.setDate(yestObj.getDate() - 1); let yesterdayStr = yestObj.toLocaleDateString('vi-VN');
+            let sevenDaysAgo = new Date(todayObj); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             
             let filtered = db.visits.map((v, idx) => ({...v, index: idx})).filter(v => {
                 let matchDate = true;
-                if(fDate === 'today') matchDate = (v.ngay === todayStr);
-                else if(fDate === 'yesterday') matchDate = (v.ngay === yesterdayStr);
-                else if(fDate === '7days') {
-                    let parts = v.ngay.split('/');
-                    if(parts.length === 3) {
-                        let vD = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                        matchDate = (vD >= sevenDaysAgo && vD <= todayObj);
-                    }
-                }
-                
+                if(fDate === 'today') matchDate = (v.ngay === todayStr); else if(fDate === 'yesterday') matchDate = (v.ngay === yesterdayStr);
+                else if(fDate === '7days') { let parts = v.ngay.split('/'); if(parts.length === 3) { let vD = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); matchDate = (vD >= sevenDaysAgo && vD <= todayObj); } }
                 let matchStatus = (fStatus === 'all') ? true : (fStatus === 'Đang chờ' ? (v.trangthai === 'Đang chờ' || v.trangthai === 'Lưu tạm') : v.trangthai === fStatus);
-                let p = db.patients.find(x => x.mabn === v.mabn) || {};
-                let matchSearch = p.hoten?.toLowerCase().includes(fSearch) || v.mabn.toLowerCase().includes(fSearch) || v.maluot.toLowerCase().includes(fSearch);
+                let p = db.patients.find(x => x.mabn === v.mabn) || {}; let matchSearch = p.hoten?.toLowerCase().includes(fSearch) || v.mabn.toLowerCase().includes(fSearch) || v.maluot.toLowerCase().includes(fSearch);
                 return matchDate && matchStatus && matchSearch;
             }).reverse();
 
             if(filtered.length > 0) {
                 tbody.innerHTML = filtered.map(v => {
-                    let p = db.patients.find(x => x.mabn === v.mabn);
-                    let badge = v.trangthai === 'Đã hoàn tất' ? 'success' : (v.trangthai === 'Lưu tạm' ? 'info' : 'warning');
-                    return `
-                        <tr>
-                            <td class="fw-bold">${v.maluot}</td>
-                            <td>${v.mabn}</td>
-                            <td class="fw-bold text-primary">${p.hoten}</td>
-                            <td>${v.ngay}</td>
-                            <td>${v.loaisa}</td>
-                            <td><span class="badge bg-${badge}">${v.trangthai}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-primary shadow-sm me-1" onclick="openDoctorForm(${v.index})"><i class="fas ${v.trangthai==='Đã hoàn tất'?'fa-eye':'fa-edit'}"></i> Khám/In</button>
-                                <button class="btn btn-sm btn-danger shadow-sm admin-only" onclick="deleteVisit(${v.index})" title="Xóa lượt khám này"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    `;
+                    let p = db.patients.find(x => x.mabn === v.mabn) || { hoten: 'Không xác định' }; let badge = v.trangthai === 'Đã hoàn tất' ? 'success' : (v.trangthai === 'Lưu tạm' ? 'info' : 'warning');
+                    return `<tr><td class="fw-bold">${v.maluot}</td><td>${v.mabn}</td><td class="fw-bold text-primary">${p.hoten}</td><td>${v.ngay}</td><td>${v.loaisa}</td><td><span class="badge bg-${badge}">${v.trangthai}</span></td><td><button class="btn btn-sm btn-primary shadow-sm me-1" onclick="openDoctorForm(${v.index})"><i class="fas ${v.trangthai==='Đã hoàn tất'?'fa-eye':'fa-edit'}"></i> Khám/In</button><button class="btn btn-sm btn-danger shadow-sm admin-only" onclick="deleteVisit(${v.index})" title="Xóa lượt khám này"><i class="fas fa-trash"></i></button></td></tr>`;
                 }).join('');
             } else { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Không có lượt khám phù hợp.</td></tr>`; }
         }
 
-        // --- ULTRASOUND FORM, DRAFTS & LOCK/UNLOCK ---
         function saveDraftLocal() {
-            if(currentVisitIndex === -1) return;
-            let draft = { mota: document.getElementById('res-mota').value, ketluan: document.getElementById('res-ketluan').value, ghichu: document.getElementById('res-ghichu').value };
-            localStorage.setItem('draft_visit_' + currentVisitIndex, JSON.stringify(draft));
-            document.getElementById('draft-status').style.display = 'inline-block';
+            if(currentVisitIndex === -1) return; let draft = { mota: document.getElementById('res-mota').value, ketluan: document.getElementById('res-ketluan').value, ghichu: document.getElementById('res-ghichu').value };
+            localStorage.setItem('draft_visit_' + currentVisitIndex, JSON.stringify(draft)); document.getElementById('draft-status').style.display = 'inline-block';
         }
-        function clearDraftLocal() {
-            if(currentVisitIndex === -1) return; localStorage.removeItem('draft_visit_' + currentVisitIndex); document.getElementById('draft-status').style.display = 'none'; showToast("Đã xóa bản nháp.");
-        }
+        function clearDraftLocal() { if(currentVisitIndex === -1) return; localStorage.removeItem('draft_visit_' + currentVisitIndex); document.getElementById('draft-status').style.display = 'none'; showToast("Đã xóa bản nháp."); }
 
         function lockResultForm() {
-            document.getElementById('res-mota').disabled = true;
-            document.getElementById('res-ketluan').disabled = true;
-            document.getElementById('res-ghichu').disabled = true;
-            document.getElementById('btn-upload-img').style.display = 'none';
-            document.getElementById('btn-clear-draft').style.display = 'none';
-            document.getElementById('btn-save-temp').style.display = 'none';
-            document.getElementById('btn-complete').style.display = 'none';
-            document.getElementById('btn-unlock-result').style.display = 'inline-block';
+            document.getElementById('res-mota').disabled = true; document.getElementById('res-ketluan').disabled = true; document.getElementById('res-ghichu').disabled = true;
+            document.getElementById('btn-upload-img').style.display = 'none'; document.getElementById('btn-clear-draft').style.display = 'none'; document.getElementById('btn-save-temp').style.display = 'none'; document.getElementById('btn-complete').style.display = 'none'; document.getElementById('btn-unlock-result').style.display = 'inline-block';
         }
 
         function unlockResultForm() {
-            document.getElementById('res-mota').disabled = false;
-            document.getElementById('res-ketluan').disabled = false;
-            document.getElementById('res-ghichu').disabled = false;
-            document.getElementById('btn-upload-img').style.display = 'inline-block';
-            document.getElementById('btn-clear-draft').style.display = 'inline-block';
-            document.getElementById('btn-save-temp').style.display = 'inline-block';
-            document.getElementById('btn-complete').style.display = 'inline-block';
-            document.getElementById('btn-unlock-result').style.display = 'none';
+            document.getElementById('res-mota').disabled = false; document.getElementById('res-ketluan').disabled = false; document.getElementById('res-ghichu').disabled = false;
+            document.getElementById('btn-upload-img').style.display = 'inline-block'; document.getElementById('btn-clear-draft').style.display = 'inline-block'; document.getElementById('btn-save-temp').style.display = 'inline-block'; document.getElementById('btn-complete').style.display = 'inline-block'; document.getElementById('btn-unlock-result').style.display = 'none';
         }
 
         function openDoctorForm(visitIndex) {
-            currentVisitIndex = visitIndex; let v = db.visits[visitIndex]; let p = db.patients.find(x => x.mabn === v.mabn);
-            document.getElementById('f-hoten').innerText = p.hoten; document.getElementById('f-mabn').innerText = p.mabn;
-            document.getElementById('f-tuoi').innerText = p.tuoi; document.getElementById('f-gioitinh').innerText = p.gioitinh;
-            document.getElementById('f-loaisa').innerText = v.loaisa; document.getElementById('f-maluot').innerText = v.maluot;
-            document.getElementById('res-public').checked = v.publicResult !== false;
+            currentVisitIndex = visitIndex; let v = db.visits[visitIndex]; let p = db.patients.find(x => x.mabn === v.mabn) || { hoten: 'Lỗi Database', tuoi: '', gioitinh: '' };
+            document.getElementById('f-hoten').innerText = p.hoten; document.getElementById('f-mabn').innerText = p.mabn || v.mabn; document.getElementById('f-tuoi').innerText = p.tuoi; document.getElementById('f-gioitinh').innerText = p.gioitinh;
+            document.getElementById('f-loaisa').innerText = v.loaisa; document.getElementById('f-maluot').innerText = v.maluot; document.getElementById('res-public').checked = v.publicResult !== false;
 
             let draftStr = localStorage.getItem('draft_visit_' + currentVisitIndex);
             if(draftStr && v.trangthai !== 'Đã hoàn tất') {
@@ -1451,24 +1148,17 @@
             } else { document.getElementById('draft-status').style.display = 'none'; document.getElementById('res-mota').value = v.templateData.mota; document.getElementById('res-ketluan').value = v.ketluanchung; document.getElementById('res-ghichu').value = v.ghichuchung; }
 
             uploadedImages = [...(v.images || [])]; renderImagePreview();
-            
             if(v.trangthai === 'Đã hoàn tất') lockResultForm(); else unlockResultForm();
-            
             showPage('result-form');
         }
 
         function handleImageUpload(event) {
-            const files = event.target.files; let allowed = 4 - uploadedImages.length;
-            if(allowed <= 0) { showToast("Chỉ cho phép tối đa 4 ảnh!", "error"); return; }
-            let count = Math.min(files.length, allowed);
-            for (let i = 0; i < count; i++) {
-                compressImage(files[i], 800, function(dataUrl) { uploadedImages.push(dataUrl); renderImagePreview(); });
-            }
+            const files = event.target.files; let allowed = 4 - uploadedImages.length; if(allowed <= 0) { showToast("Chỉ cho phép tối đa 4 ảnh!", "error"); return; }
+            let count = Math.min(files.length, allowed); for (let i = 0; i < count; i++) { compressImage(files[i], 800, function(dataUrl) { uploadedImages.push(dataUrl); renderImagePreview(); }); }
         }
+        
         function renderImagePreview() {
-            const container = document.getElementById('image-preview-container');
-            if(uploadedImages.length === 0) { container.innerHTML = `<div class="text-muted small w-100 text-center py-4">Chưa có ảnh nào. (Tối đa 4 ảnh)</div>`; return; }
-            
+            const container = document.getElementById('image-preview-container'); if(uploadedImages.length === 0) { container.innerHTML = `<div class="text-muted small w-100 text-center py-4">Chưa có ảnh nào. (Tối đa 4 ảnh)</div>`; return; }
             let isLocked = document.getElementById('btn-unlock-result').style.display !== 'none';
             container.innerHTML = uploadedImages.map((src, i) => {
                 let actionHTML = isLocked ? '' : `<div class="img-actions"><button class="btn btn-sm btn-outline-secondary" onclick="replaceImage(${i})" title="Thay ảnh"><i class="fas fa-sync-alt"></i></button><button class="btn btn-sm btn-outline-danger" onclick="removeImage(${i})" title="Xóa"><i class="fas fa-trash"></i></button></div>`;
@@ -1479,90 +1169,50 @@
         function replaceImage(index) { let input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { if(e.target.files.length > 0) compressImage(e.target.files[0], 800, function(url) { uploadedImages[index] = url; renderImagePreview(); }); }; input.click(); }
         function viewZoom(src) { let win = window.open(); win.document.write(`<img src="${src}" style="width:100%; max-width:800px; display:block; margin:auto;">`); }
 
+        // BẢN VÁ: MỞ IN SANG TAB MỚI 
         function saveResult(status) {
             if(currentVisitIndex === -1) return;
             let ketluan = document.getElementById('res-ketluan').value.trim();
             if(status === 'Đã hoàn tất' && !ketluan) { showToast("Vui lòng nhập KẾT LUẬN trước khi hoàn tất!", "error"); return; }
 
             let v = db.visits[currentVisitIndex];
-            v.templateData.mota = document.getElementById('res-mota').value; v.ketluanchung = ketluan; 
-            v.ghichuchung = document.getElementById('res-ghichu').value; v.images = [...uploadedImages]; 
-            v.trangthai = status; v.publicResult = document.getElementById('res-public').checked;
+            v.templateData.mota = document.getElementById('res-mota').value; 
+            v.ketluanchung = ketluan; 
+            v.ghichuchung = document.getElementById('res-ghichu').value; 
+            v.images = [...uploadedImages]; 
+            v.trangthai = status; 
+            v.publicResult = document.getElementById('res-public').checked;
             
-            saveData(); clearDraftLocal(); showToast("Đã " + status + " kết quả!");
+            logAction('CẬP NHẬT', 'SIÊU ÂM', `${status} kết quả siêu âm lượt ${v.maluot}`);
+            saveData(); clearDraftLocal(); 
+            showToast("Đã " + status + " kết quả!");
             
             if(status === 'Đã hoàn tất') {
-                lockResultForm(); renderImagePreview(); // To hide delete image buttons
-                generatePrintPreview(v, db.patients.find(x => x.mabn === v.mabn));
+                lockResultForm(); renderImagePreview(); 
+                
+                let p = db.patients.find(x => x.mabn === v.mabn) || { hoten: 'Lỗi Database', tuoi: '', gioitinh: '', diachi: '' };
+                openPrintInNewWindow(v, p);
+
+                showPage('ultrasound');
+                renderWaitingList();
+                updateDashboard();
             } else {
                 showPage('ultrasound');
             }
         }
 
-        // --- LAB RENDERING ---
-        function renderLabList() {
-            const tbody = document.getElementById('lab-waiting-list');
-            if(db.labVisits.length > 0) {
-                tbody.innerHTML = db.labVisits.map((v, i) => {
-                    let p = db.patients.find(x => x.mabn === v.mabn) || {};
-                    let badge = v.trangthai === 'Đã hoàn tất' ? 'success' : 'warning';
-                    let testCount = v.tests ? v.tests.length : 0;
-                    return `
-                        <tr>
-                            <td class="fw-bold">${v.maluot}</td>
-                            <td class="fw-bold text-danger">${p.hoten}</td>
-                            <td>${v.ngay}</td>
-                            <td>${testCount} chỉ số</td>
-                            <td><span class="badge bg-${badge}">${v.trangthai}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-danger fw-bold shadow-sm me-1" onclick="openLabForm(${i})">Trả KQ</button>
-                                <button class="btn btn-sm btn-outline-danger shadow-sm admin-only" onclick="deleteLabVisit(${i})" title="Xóa lượt XN này"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    `;
-                }).reverse().join('');
-            } else { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Chưa có chỉ định xét nghiệm.</td></tr>`; }
-        }
-
-        let currentLabIndex = -1;
-        function openLabForm(idx) {
-            currentLabIndex = idx; let v = db.labVisits[idx]; let p = db.patients.find(x => x.mabn === v.mabn);
-            document.getElementById('l-hoten').innerText = p.hoten; document.getElementById('l-mabn').innerText = p.mabn; document.getElementById('l-tuoi').innerText = p.tuoi; document.getElementById('l-maluot').innerText = v.maluot;
-            
-            let tbody = document.getElementById('lab-tests-body');
-            let assignedTests = (v.tests || []).map(tid => db.config.labTests.find(t => t.id === tid)).filter(Boolean);
-            
-            assignedTests.sort((a,b) => a.category.localeCompare(b.category));
-            let html = '', currentCat = '';
-            assignedTests.forEach(t => {
-                if(t.category !== currentCat) { html += `<tr class="table-secondary"><td colspan="5" class="fw-bold text-danger">${t.category}</td></tr>`; currentCat = t.category; }
-                let val = v.results && v.results[t.id] ? v.results[t.id] : '';
-                html += `<tr><td class="fw-bold ps-4">${t.name}</td><td>${t.category}</td><td><input type="text" class="form-control text-center fw-bold" style="color:var(--primary-color);" id="lab-val-${t.id}" value="${val}"></td><td class="text-center">${t.unit}</td><td class="text-center">${t.normal}</td></tr>`;
-            });
-            tbody.innerHTML = html; showPage('lab-form');
-        }
-
-        function saveLabResult() {
-            if(currentLabIndex === -1) return; let v = db.labVisits[currentLabIndex]; v.results = {};
-            let assignedTests = (v.tests || []).map(tid => db.config.labTests.find(t => t.id === tid)).filter(Boolean);
-            assignedTests.forEach(t => { v.results[t.id] = document.getElementById(`lab-val-${t.id}`).value; });
-            v.trangthai = 'Đã hoàn tất'; saveData(); showToast("Đã lưu KQ Xét nghiệm!"); showPage('lab');
-        }
-
-        // --- PRINTING & AUTO-FIT ---
         function formatDescriptionText(text) {
             let clean = text.replace(/^[-•*]\s*/gm, ''); return clean.replace(/^([A-Za-zĐđĂăÂâÊêÔôƠơƯưÀ-ỹ\s–]+):/gm, '<span class="print-organ-name">• $1:</span>');
         }
 
-        function generatePrintPreview(visit, patient) {
-            applyPrintSettingsToDOM(); 
+        function openPrintInNewWindow(visit, patient) {
+            // Nạp dữ liệu vào form HTML ảo
             document.getElementById('p-clinic-name').innerText = db.config.clinic.name.toUpperCase();
             document.getElementById('p-clinic-address').innerText = db.config.clinic.address;
             document.getElementById('p-clinic-phone').innerText = db.config.clinic.phone;
             
             let wh = db.config.clinic.workingHours || {};
-            let whStr = `Giờ làm việc: T2-T6 (${wh.weekday || ''}) | T7-CN (${wh.weekend || wh.saturday || 'Nghỉ'})`;
-            document.getElementById('p-clinic-time').innerText = whStr;
+            document.getElementById('p-clinic-time').innerText = `Giờ làm việc: T2-T6 (${wh.weekday || ''}) | T7-CN (${wh.weekend || wh.saturday || 'Nghỉ'})`;
             
             const pLogo = document.getElementById('p-logo');
             if(db.config.clinic.logo) { pLogo.src = db.config.clinic.logo; pLogo.style.display = 'block'; } else { pLogo.style.display = 'none'; }
@@ -1570,7 +1220,6 @@
             document.getElementById('p-hoten').innerText = patient.hoten; document.getElementById('p-tuoi').innerText = patient.tuoi;
             document.getElementById('p-gioitinh').innerText = patient.gioitinh; document.getElementById('p-diachi').innerText = patient.diachi;
             document.getElementById('p-loaisa').innerText = visit.loaisa; document.getElementById('p-maluot-print').innerText = visit.maluot;
-
             document.getElementById('p-dynamic-results').innerHTML = formatDescriptionText(visit.templateData.mota);
             document.getElementById('p-ketluan').innerText = visit.ketluanchung; 
             
@@ -1591,51 +1240,163 @@
             const secureUrl = `https://sieuamminhduc.netlify.app/?result=${visit.token}`;
             document.getElementById('p-qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(secureUrl)}`;
 
-            showPage('print-preview');
-        }
-        
-        function autoFitPrintPage() {
-            const preview = document.getElementById('a4-document');
             const ps = db.config.printSettings || defaultPrintSettings;
-            if (!ps.autoFitOnePage) return;
-
-            applyPrintSettingsToDOM();
             
-            let currentSize = parseFloat(ps.fontSize);
-            let currentLineHeight = parseFloat(ps.lineHeight);
-            let currentSpacing = 5;
-            let currentImgHeight = 75; 
-            let currentMargin = parseFloat(ps.pageMargin);
-
-            const root = document.documentElement;
-            const originalHeight = preview.style.height;
-            preview.style.height = '297mm'; 
+            // Trích xuất mã HTML
+            const printContent = document.getElementById('a4-document').innerHTML;
             
-            let loop = 0;
-            while(preview.scrollHeight > preview.clientHeight && loop < 30) {
-                if (currentSpacing > 2) { currentSpacing -= 1; }
-                else if (currentLineHeight > 1.1) { currentLineHeight -= 0.05; }
-                else if (currentImgHeight > 40) { currentImgHeight -= 5; }
-                else if (currentSize > 9.5) { currentSize -= 0.25; }
-                else if (currentMargin > 8) { currentMargin -= 1; }
-                else break;
+            let dynamicCSS = `
+                :root {
+                    --p-font: ${ps.fontFamily};
+                    --p-font-size: ${ps.fontSize}pt;
+                    --p-text-color: ${ps.textColor};
+                    --p-organ-color: ${ps.organColor || ps.textColor};
+                    --p-conclusion-color: ${ps.conclusionColor};
+                    --p-line-height: ${ps.lineHeight};
+                    --p-margin: ${ps.pageMargin}mm;
+                    --p-img-height: 75mm;
+                    --p-spacing: 5px;
+                }
+            `;
 
-                root.style.setProperty('--p-spacing', `${currentSpacing}px`);
-                root.style.setProperty('--p-line-height', `${currentLineHeight}`);
-                root.style.setProperty('--p-img-height', `${currentImgHeight}mm`);
-                root.style.setProperty('--p-font-size', `${currentSize}pt`);
-                root.style.setProperty('--p-margin', `${currentMargin}mm`);
-                loop++;
+            const printStyles = `
+                body { margin: 0; padding: 0; background: #fff; }
+                .a4-preview { 
+                    width: 210mm; box-sizing: border-box; margin: 0 auto; padding: var(--p-margin); 
+                    font-family: var(--p-font); color: var(--p-text-color); font-size: var(--p-font-size); line-height: var(--p-line-height);
+                    display: flex; flex-direction: column; overflow: hidden;
+                }
+                .print-header { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: var(--p-spacing); flex-shrink: 0; min-height: 60px; }
+                .print-logo { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+                .print-logo img { max-height: 65px; max-width: 150px; object-fit: contain; }
+                .print-clinic-info { text-align: center; color: var(--p-text-color); width: 100%;} 
+                .print-clinic-info h4 { margin: 0 0 2px 0; font-weight: bold; font-size: 14pt; color: var(--p-text-color); text-transform: none;}
+                .print-clinic-time { font-size: 9pt; font-style: italic; margin-top: 2px;}
+                .print-section-title { background-color: #a5f3fc; color: var(--p-conclusion-color); font-weight: bold; font-size: calc(var(--p-font-size) + 2pt); text-align: center; padding: 2px; margin-bottom: var(--p-spacing); border: 1px solid var(--p-conclusion-color); flex-shrink: 0;}
+                .print-patient-table { width: 100%; border-collapse: collapse; margin-bottom: var(--p-spacing); color: var(--p-text-color); flex-shrink: 0;}
+                .print-patient-table td { border: 1px dotted #94a3b8; padding: 2px 6px; font-size: calc(var(--p-font-size) - 0.5pt); }
+                .patient-name-bold { font-weight: bold; font-size: var(--p-font-size); }
+                .print-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
+                .print-result-section { white-space: pre-wrap; word-wrap: break-word; text-align: justify; margin-bottom: var(--p-spacing); width: 100%; flex-shrink: 0; } 
+                .print-organ-name { color: var(--p-organ-color); font-weight: bold; }
+                .print-image-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: var(--p-spacing) 0; flex-shrink: 0;}
+                .print-image-grid img { max-width: 48%; height: var(--p-img-height); object-fit: cover; border: 1px solid #64748b; } 
+                .print-conclusion-box { background-color: #fef2f2; padding: 6px 10px; margin-top: var(--p-spacing); margin-bottom: var(--p-spacing); border: 1px dashed var(--p-conclusion-color); flex-shrink: 0; page-break-inside: avoid;}
+                .print-conclusion-text { color: var(--p-conclusion-color); font-weight: bold; font-size: var(--p-font-size); margin-bottom: 2px; display: block;} 
+                .print-note-text { color: var(--p-conclusion-color); font-weight: bold; font-style: italic; font-size: calc(var(--p-font-size) - 1pt); display: block;} 
+                .print-footer { display: flex; justify-content: space-between; margin-top: auto; padding-top: 5px; color: var(--p-text-color); page-break-inside: avoid; flex-shrink: 0;}
+                .print-qr-code { text-align: center;}
+                .print-qr-code img { width: 60px; height: 60px; }
+                .print-signature { text-align: center; width: 220px;}
+                .signature-img { max-height: 50px; margin-top: 2px; }
+                
+                @media print {
+                    @page { size: A4 portrait; margin: 0; }
+                    html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; overflow: hidden; }
+                    .a4-preview { width: 210mm; height: 297mm; page-break-after: avoid; }
+                }
+            `;
+
+            // Bỏ tham số kích thước 'width=900,height=900' để trình duyệt mở Tab mới
+            let printWindow = window.open('', '_blank');
+            if(printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html lang="vi">
+                    <head>
+                        <title>In Kết Quả - ${patient.hoten}</title>
+                        <style>
+                            ${dynamicCSS}
+                            ${printStyles}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="a4-preview" id="a4-document">
+                            ${printContent}
+                        </div>
+                        <script>
+                            window.onload = function() {
+                                const preview = document.getElementById('a4-document');
+                                const autoFitEnabled = ${ps.autoFitOnePage};
+                                
+                                if (autoFitEnabled) {
+                                    let currentSize = ${parseFloat(ps.fontSize)};
+                                    let currentLineHeight = ${parseFloat(ps.lineHeight)};
+                                    let currentSpacing = 5;
+                                    let currentImgHeight = 75;
+                                    let currentMargin = ${parseFloat(ps.pageMargin)};
+                                    
+                                    const root = document.documentElement;
+                                    
+                                    // Chốt cứng chiều cao thành A4 để phát hiện tràn viền (overflow)
+                                    preview.style.height = '297mm';
+                                    
+                                    let loop = 0;
+                                    while(preview.scrollHeight > preview.clientHeight && loop < 30) {
+                                        if (currentSpacing > 2) currentSpacing -= 1;
+                                        else if (currentLineHeight > 1.1) currentLineHeight -= 0.05;
+                                        else if (currentImgHeight > 40) currentImgHeight -= 5;
+                                        else if (currentSize > 9.5) currentSize -= 0.25;
+                                        else if (currentMargin > 8) currentMargin -= 1;
+                                        else break;
+                                        
+                                        root.style.setProperty('--p-spacing', currentSpacing + 'px');
+                                        root.style.setProperty('--p-line-height', currentLineHeight);
+                                        root.style.setProperty('--p-img-height', currentImgHeight + 'mm');
+                                        root.style.setProperty('--p-font-size', currentSize + 'pt');
+                                        root.style.setProperty('--p-margin', currentMargin + 'mm');
+                                        loop++;
+                                    }
+                                }
+                                
+                                // Chờ vài mili-giây để DOM render xong CSS mới thì gọi In
+                                setTimeout(function(){ 
+                                    window.print(); 
+                                    window.close(); 
+                                }, 300);
+                            };
+                        <\/script>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            } else {
+                alert("Trình duyệt chặn mở Tab mới (Pop-up)! Vui lòng cấp quyền cho trang web để in.");
             }
-            preview.style.height = originalHeight; 
         }
 
-        function executePrint() {
-            autoFitPrintPage();
-            setTimeout(() => { 
-                window.print();
-                setTimeout(applyPrintSettingsToDOM, 1000);
-            }, 300);
+        // --- LAB RENDERING ---
+        function renderLabList() {
+            const tbody = document.getElementById('lab-waiting-list');
+            if(db.labVisits.length > 0) {
+                tbody.innerHTML = db.labVisits.map((v, i) => {
+                    let p = db.patients.find(x => x.mabn === v.mabn) || { hoten: 'Không xác định' }; let badge = v.trangthai === 'Đã hoàn tất' ? 'success' : 'warning'; let testCount = v.tests ? v.tests.length : 0;
+                    return `<tr><td class="fw-bold">${v.maluot}</td><td class="fw-bold text-danger">${p.hoten}</td><td>${v.ngay}</td><td>${testCount} chỉ số</td><td><span class="badge bg-${badge}">${v.trangthai}</span></td><td><button class="btn btn-sm btn-danger fw-bold shadow-sm me-1" onclick="openLabForm(${i})">Trả KQ</button><button class="btn btn-sm btn-outline-danger shadow-sm admin-only" onclick="deleteLabVisit(${i})" title="Xóa lượt XN này"><i class="fas fa-trash"></i></button></td></tr>`;
+                }).reverse().join('');
+            } else { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Chưa có chỉ định xét nghiệm.</td></tr>`; }
+        }
+
+        let currentLabIndex = -1;
+        function openLabForm(idx) {
+            currentLabIndex = idx; let v = db.labVisits[idx]; let p = db.patients.find(x => x.mabn === v.mabn) || { hoten: 'Lỗi Database', tuoi: '' };
+            document.getElementById('l-hoten').innerText = p.hoten; document.getElementById('l-mabn').innerText = p.mabn || v.mabn; document.getElementById('l-tuoi').innerText = p.tuoi; document.getElementById('l-maluot').innerText = v.maluot;
+            let tbody = document.getElementById('lab-tests-body'); let assignedTests = (v.tests || []).map(tid => db.config.labTests.find(t => t.id === tid)).filter(Boolean); assignedTests.sort((a,b) => a.category.localeCompare(b.category));
+            let html = '', currentCat = '';
+            assignedTests.forEach(t => {
+                if(t.category !== currentCat) { html += `<tr class="table-secondary"><td colspan="5" class="fw-bold text-danger">${t.category}</td></tr>`; currentCat = t.category; }
+                let val = v.results && v.results[t.id] ? v.results[t.id] : '';
+                html += `<tr><td class="fw-bold ps-4">${t.name}</td><td>${t.category}</td><td><input type="text" class="form-control text-center fw-bold" style="color:var(--primary-color);" id="lab-val-${t.id}" value="${val}"></td><td class="text-center">${t.unit}</td><td class="text-center">${t.normal}</td></tr>`;
+            });
+            tbody.innerHTML = html; showPage('lab-form');
+        }
+
+        function saveLabResult() {
+            if(currentLabIndex === -1) return; let v = db.labVisits[currentLabIndex]; v.results = {};
+            let assignedTests = (v.tests || []).map(tid => db.config.labTests.find(t => t.id === tid)).filter(Boolean);
+            assignedTests.forEach(t => { v.results[t.id] = document.getElementById(`lab-val-${t.id}`).value; });
+            v.trangthai = 'Đã hoàn tất'; logAction('CẬP NHẬT', 'XÉT NGHIỆM', `Lưu kết quả xét nghiệm lượt ${v.maluot}`);
+            saveData(); showToast("Đã lưu KQ Xét nghiệm!"); showPage('lab');
         }
 
         // --- PUBLIC RESULT (QR) ---
@@ -1664,7 +1425,6 @@
             }).catch(() => { document.getElementById('pub-error').style.display = 'block'; });
         }
 
-        // --- TRA CỨU LỊCH SỬ BỆNH NHÂN ---
         function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(searchFullPatients, 400); }
         
         function searchFullPatients() {
@@ -1678,7 +1438,11 @@
             let results = db.patients.filter(p => prefixRegex.test(p.hoten) || p.mabn.toLowerCase().includes(query) || (p.sdt && p.sdt.includes(query)));
             if (results.length > 0) {
                 results = sortSearchResults(results, query);
-                tbody.innerHTML = results.map(p => {
+                
+                let uniqueResults = []; let seenIds = new Set();
+                for (let r of results) { if(!seenIds.has(r.mabn)) { seenIds.add(r.mabn); uniqueResults.push(r); } }
+                
+                tbody.innerHTML = uniqueResults.map(p => {
                     let countVisits = db.visits.filter(v => v.mabn === p.mabn).length + db.labVisits.filter(v => v.mabn === p.mabn).length;
                     return `
                         <tr>
@@ -1699,7 +1463,7 @@
         }
 
         function viewHistory(mabn) {
-            const p = db.patients.find(x => x.mabn === mabn);
+            const p = db.patients.find(x => x.mabn === mabn) || { hoten: 'Không xác định' };
             const history = [...db.visits.filter(v => v.mabn === mabn), ...db.labVisits.filter(v => v.mabn === mabn)].sort((a,b) => b.maluot.localeCompare(a.maluot));
             document.getElementById('hist-hoten').innerText = p.hoten;
             const tbody = document.getElementById('hist-visits-table');
